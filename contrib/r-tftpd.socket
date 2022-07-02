@@ -1,0 +1,8 @@
+[Unit]
+Description=r-tftpd Server Activation Socket
+
+[Socket]
+ListenDatagram=69
+
+[Install]
+WantedBy=sockets.target

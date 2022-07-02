@@ -1,0 +1,9 @@
+[Unit]
+Description=r-tftpd Server
+Requires=r-tftpd.socket
+
+[Service]
+ExecStart=/usr/sbin/r-tftpd --systemd
+WorkingDirectory=/var/lib/tftpboot
+User=ftp
+Group=ftp
