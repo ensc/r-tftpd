@@ -25,3 +25,7 @@ clap = { version = "*", features = ["derive", "color", "std"] }
 
 [dev-dependencies]
 tempdir = "*"
+
+[profile.release]
+lto = true
+codegen-units = 1
