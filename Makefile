@@ -15,6 +15,7 @@ include mk/init.mk
 
 include mk/m4.mk
 include mk/paths.mk
+include mk/tools.mk
 include mk/cargo.mk
 
 include contrib/Makefile.mk
