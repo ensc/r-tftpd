@@ -1,0 +1,61 @@
+# --*- gitlab-ci -*--
+
+variables:
+  RUSTUP_INIT_SKIP_PATH_CHECK: "yes"
+
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: $CI_FORCE_BUILD
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - when: always
+
+.build:
+  image: $CI_REGISTRY/docker/sigma/ci/fedora:36
+  variables:
+    CARGO_HOME: $CI_PROJECT_DIR/.home/cargo
+    RUSTUP_HOME: $CI_PROJECT_DIR/.home/rustup
+    CARGO_TARGET_DIR: $CI_PROJECT_DIR/.home/target
+    RUSTUP_CHAIN: stable
+    _CARGO: "cargo +$RUSTUP_CHAIN"
+    LLVM_PROFILE_FILE: "r-tftpd-%p-%m.profraw"
+
+  before_script:
+    - sudo -iH rm -f /etc/sudoers
+    - |
+      curl -fRS https://sh.rustup.rs > /tmp/rustup
+      sh /tmp/rustup -y --default-toolchain "$RUSTUP_CHAIN"
+      source $CARGO_HOME/env
+      rustup component add llvm-tools-preview
+
+    - _make() { make CARGO="${_CARGO}" "$@"; }
+
+  script:
+    - _make prepare
+    - _make cargo-update
+    - _make cargo-build-all
+    - _make build
+    - _make test
+
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.cobertura
+
+build:release:
+  extends: [ ".build" ]
+  variables:
+    CARGO_FLAGS: "--release"
+
+build:debug:
+  extends: [ ".build" ]
+  variables:
+    CARGO_FLAGS: ""
+    RUSTUP_CHAIN: nightly
+    RUSTFLAGS: "-Cinstrument-coverage"
