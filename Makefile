@@ -11,6 +11,7 @@ include mk/init.mk
 
 -include ${HOME}/.config/rust/common.mk
 -include ${HOME}/.config/rust/r-tftpd.mk
+-include .local.mk
 
 include mk/m4.mk
 include mk/paths.mk
