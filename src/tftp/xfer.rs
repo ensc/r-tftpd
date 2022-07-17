@@ -199,12 +199,12 @@ impl <'a> Xfer<'a> {
     {
 	assert!(self.active_sz <= self.window_size());
 
-	debug!("filling {:?} in {:?}@{}+{}", blk_id, self.start.seq, self.start.idx, self.active_sz);
+	trace!("filling {:?} in {:?}@{}+{}", blk_id, self.start.seq, self.start.idx, self.active_sz);
 
 	self.free_blocks(blk_id)?;
 
 	if self.active_sz > 0 {
-	    info!("retransmitting {:?}+", blk_id);
+	    debug!("retransmitting {:?}+", blk_id);
 	}
 
 	while self.active_sz < self.window_size() && !self.is_eof {
