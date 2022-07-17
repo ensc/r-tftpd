@@ -93,9 +93,6 @@ cargo-update:	FORCE
 cargo-build:	FORCE
 	$(call _cargo_build,,)
 
-cargo-build-all:	FORCE
-	$(call _cargo_build,,--all-targets --tests --benches)
-
 cargo-test:	export RUST_BACKTRACE=1
 cargo-test:
 	$(call _cargo_test,,)
