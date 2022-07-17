@@ -23,44 +23,58 @@ all:		.cargo-prepare
 prepare:	.cargo-prepare
 clean:		.cargo-clean
 
+CARGO_BUILD_FLAGS ?=
+AM_CARGO_BUILD_FLAGS = \
+	$(if ${IS_RELEASE},--release) \
+	$(if ${IS_OFFLINE},--frozen --offline) \
+
+CARGO_TEST_FLAGS ?=
+AM_CARGO_TEST_FLAGS = \
+	$(if ${PKG},--package ${PKG},--workspace) \
+	$(if ${IS_RELEASE},--release) \
+	--frozen --offline \
+
+CARGO_CHECK_FLAGS ?=	${CARGO_TEST_FLAGS}
+AM_CARGO_CHECK_FLAGS = \
+	${AM_CARGO_TEST_FLAGS} \
+	--tests \
+
+CARGO_DOC_FLAGS ?=
+AM_CARGO_DOC_FLAGS = \
+	$(if ${IS_RELEASE},--release) \
+	--frozen --offline \
+
+CARGO_INSTALL_FLAGS ?=
+AM_CARGO_INSTALL_FLAGS = \
+	$(if ${IS_RELEASE},,--debug) \
+	--force --frozen --offline \
 
 __cargo_op = ${CARGO} ${CARGO_TOOLCHAIN} $1 $2
 
 _cargo_build = $(call __cargo_op,$1,build) \
-	$(if ${IS_RELEASE},--release) \
 	$(if ${PKG},--package ${PKG}) \
-	${AM_CARGO_FLAGS} \
-	${CARGO_FLAGS} \
+	${AM_CARGO_BUILD_FLAGS} \
+	${CARGO_BUILD_FLAGS} \
 	$2
 
 _cargo_test = $(call __cargo_op,$1,test) \
-	--frozen --offline \
-	$(if ${PKG},--package ${PKG},--workspace) \
-	$(if ${IS_RELEASE},--release) \
-	${AM_CARGO_FLAGS} \
-	${CARGO_FLAGS} \
+	${AM_CARGO_TEST_FLAGS} \
+	${CARGO_TEST_FLAGS} \
 	$2 --
 
 _cargo_check = $(call __cargo_op,$1,check) \
-	--frozen --offline --tests \
-	$(if ${PKG},--package ${PKG},--workspace) \
-	$(if ${IS_RELEASE},--release) \
-	${AM_CARGO_FLAGS} \
-	${CARGO_FLAGS} \
+	${AM_CARGO_CHECK_FLAGS} \
+	${CARGO_CHECK_FLAGS} \
 	$2
 
 _cargo_doc = $(call __cargo_op,$1,doc) \
-	--frozen --offline \
-	$(if ${IS_RELEASE},--release) \
-	${AM_CARGO_FLAGS} \
-	${CARGO_FLAGS} \
+	${AM_CARGO_DOC_FLAGS} \
+	${CARGO_DOC_FLAGS} \
 	$2
 
 _cargo_install = $(call __cargo_op,$1,install) \
-	$(if ${IS_RELEASE},,--debug) \
-	${AM_CARGO_FLAGS} \
-	${CARGO_FLAGS} \
-	--force --frozen --offline \
+	${AM_CARGO_INSTALL_FLAGS} \
+	${CARGO_INSTALL_FLAGS} \
 	--path '${srcdir}' \
 	--root '${DESTDIR}/${prefix}' \
 	$2

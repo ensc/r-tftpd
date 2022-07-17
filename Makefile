@@ -1,3 +1,6 @@
+IS_RELEASE ?=
+IS_OFFLINE ?=
+
 CARGO_FILES = \
 	.cargo/config \
 	Cargo.toml \
