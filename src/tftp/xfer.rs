@@ -75,6 +75,7 @@ impl <'a> Block<'a> {
 	    Data::Ref(_)	=> {
 		let data = fetcher.read_mmap(self.get_blksize() as usize)?;
 
+		// TODO: this should be solved by better lifetime specifications...
 		self.data = unsafe { std::mem::transmute(Data::Ref(Some(data))) };
 		data.len()
 	    }
