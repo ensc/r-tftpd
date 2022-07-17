@@ -18,3 +18,10 @@ include mk/paths.mk
 include mk/cargo.mk
 
 include contrib/Makefile.mk
+
+install:	install-fixup
+
+install-fixup:	cargo-install
+	${MKDIR_P} ${DESTDIR}${sbindir}
+	mv ${DESTDIR}${bindir}/r-tftpd ${DESTDIR}${sbindir}/
+	-@rmdir ${DESTDIR}${bindir}
