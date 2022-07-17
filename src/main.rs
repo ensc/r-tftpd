@@ -10,7 +10,7 @@ pub mod errors;
 pub mod util;
 pub mod fetcher;
 
-use std::sync::Arc;
+use std::{sync::Arc, os::unix::prelude::RawFd};
 use util::{ UdpSocket, UdpRecvInfo, SocketAddr, Bucket };
 
 use tftp::{ Session, SessionStats };
@@ -97,9 +97,20 @@ async fn run_tftpd_loop(env: std::sync::Arc<Environment>, sock: UdpSocket) -> Re
     }
 }
 
+enum Either<T: Sized, U: Sized> {
+    A(T),
+    B(U),
+}
+
 #[tokio::main(flavor = "current_thread")]
-async fn run(env: Environment, mut sock: UdpSocket) -> Result<()> {
-    sock.init_async_fd()?;
+async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
+    // UdpSocket creation must happen with active Tokio runtime
+    let mut sock = match info {
+	Either::A(addr)	=> UdpSocket::bind(addr),
+	Either::B(fd)	=> UdpSocket::from_raw(fd),
+    }?;
+
+    sock.set_nonblocking()?;
     sock.set_request_pktinfo()?;
 
     run_tftpd_loop(std::sync::Arc::new(env), sock).await?;
@@ -154,14 +165,10 @@ fn main() {
 	false	=> None
     };
 
-    let sock = match fd {
-	None		=> {
-	    let addr = SocketAddr::new(args.listen, args.port);
-	    UdpSocket::bind_noasync(addr)
-	},
+    let info = match fd {
+	None		=> Either::A(SocketAddr::new(args.listen, args.port)),
+	Some(fd)	=> Either::B(fd),
+    };
 
-	Some(fd)	=> UdpSocket::from_raw(fd),
-    }.expect("failed to bind socket");
-
-    run(env, sock).unwrap();
+    run(env, info).unwrap();
 }

@@ -253,21 +253,6 @@ impl UdpSocket {
     }
 
     pub fn bind(addr: SocketAddr) -> Result<Self> {
-	let mut res = Self::bind_noasync(addr)?;
-
-	res.init_async_fd()?;
-	Ok(res)
-    }
-
-    pub fn init_async_fd(&mut self) -> Result<()> {
-	assert!(self.async_fd.is_none());
-
-	self.async_fd = Some(AsyncFd::new(self.fd)?);
-
-	Ok(())
-    }
-
-    pub fn bind_noasync(addr: SocketAddr) -> Result<Self> {
 	let fd = unsafe { addr.socket() }?;
 
 	let af = addr.get_af();
@@ -277,7 +262,7 @@ impl UdpSocket {
 	    Ok(_)	=> Ok(Self {
 		fd:		fd,
 		af:		af,
-		async_fd:	None,
+		async_fd:	Some(AsyncFd::new(fd)?),
 	    }),
 
 	    Err(e)	=> {
@@ -293,7 +278,7 @@ impl UdpSocket {
 	Ok(Self {
 	    fd:		fd,
 	    af:		addr.get_af(),
-	    async_fd:	None,
+	    async_fd:	Some(AsyncFd::new(fd)?),
 	})
     }
 
