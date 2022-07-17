@@ -40,6 +40,7 @@ workflow:
     - _make cargo-update
     - _make build
     - _make test
+    - _make install DESTDIR=`pwd`/i
 
   artifacts:
     when: always
