@@ -194,6 +194,7 @@ impl <'a> Session<'a> {
 
 	let mut xfer = Xfer::new(&fetcher, self.block_size, self.window_size);
 	let mut retry = RETRY_CNT;
+	let mut is_startup = true;
 
 	loop {
 	    xfer.fill_window(seq, &mut fetcher).await?;
@@ -219,9 +220,22 @@ impl <'a> Session<'a> {
 		},
 		Ok(Datagram::Ack(id))	=> {
 		    debug!("got ACK #{}", id.as_u16());
+		    is_startup = false;
 		    retry = RETRY_CNT;
 		    seq = id + 1
 		},
+
+		Ok(Datagram::Error(code, info))	if is_startup => {
+		    debug!("remote site sent error #{} ({}) on startup; probably just testing for existence",
+			   code, String::from_utf8_lossy(info));
+		    break;
+		}
+
+		Ok(Datagram::Error(code, info)) => {
+		    info!("remote site sent error #{} ({})", code, String::from_utf8_lossy(info));
+		    break;
+		}
+
 		Err(Error::Timeout)	=> {
 		    warn!("timeout while waiting for ACK");
 		    return Err(Error::Timeout);
