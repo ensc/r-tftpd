@@ -267,8 +267,6 @@ mod test {
 
     fn verify_data(xfer: &Xfer, start_idx: SequenceId, cnt: u16)
     {
-	let end_idx = start_idx + cnt;
-
 	for (idx, d) in xfer.iter().enumerate() {
 	    println!("idx={}, d={:?}", idx, d);
 	    match d {

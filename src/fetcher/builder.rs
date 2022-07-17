@@ -181,7 +181,7 @@ mod test {
 	symlink("./http://test.example.com/foo",        tmp_path.join("a/nolink-0")).unwrap();
 
 	let fb_none = None::<OsString>;
-	let fb_some = Some::<OsString>("http://fb.example.com/redir/".into());
+	let _fb_some = Some::<OsString>("http://fb.example.com/redir/".into());
 
 
 	assert_eq!(lookup_path(tmp_path, "/b/foo", fb_none.clone()).unwrap(),
