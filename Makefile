@@ -26,3 +26,8 @@ install-fixup:	cargo-install
 	${MKDIR_P} ${DESTDIR}${sbindir}
 	mv ${DESTDIR}${bindir}/r-tftpd ${DESTDIR}${sbindir}/
 	-@rmdir ${DESTDIR}${bindir}
+
+clean:		clean-common
+
+clean-common:
+	rm -f ${CLEANFILES}
