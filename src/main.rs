@@ -11,7 +11,7 @@ pub mod util;
 pub mod fetcher;
 
 use std::{sync::Arc, os::unix::prelude::RawFd};
-use util::{ UdpSocket, UdpRecvInfo, SocketAddr, Bucket };
+use util::{ UdpSocket, UdpRecvInfo, SocketAddr, Bucket, ToFormatted };
 
 use tftp::{ Session, SessionStats };
 
@@ -27,13 +27,13 @@ pub struct Environment {
     timeout:		std::time::Duration,
 }
 
-struct SpeedInfo {
+struct SpeedInfo<'a> {
     duration:		std::time::Duration,
-    stats:		SessionStats,
+    stats:		&'a SessionStats,
 }
 
-impl SpeedInfo {
-    pub fn new(now: std::time::Instant, stats: SessionStats) -> Self {
+impl <'a> SpeedInfo<'a> {
+    pub fn new(now: std::time::Instant, stats: &'a SessionStats) -> Self {
 	Self {
 	    duration:	now.elapsed(),
 	    stats:	stats,
@@ -41,21 +41,21 @@ impl SpeedInfo {
     }
 }
 
-impl std::fmt::Display for SpeedInfo {
+impl std::fmt::Display for SpeedInfo<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-	use num_format::{ ToFormattedString, SystemLocale };
-	let locale = SystemLocale::default().unwrap();
+	write!(f, "duration={} ms", self.duration.as_millis().to_formatted())?;
 
 	match self.stats.speed_bit_per_s(self.duration) {
-	    None			=> write!(f, "n/a"),
+	    None			=> Ok(()),
 	    Some((speed_f, speed_n)) if speed_f == speed_n	=>
-		write!(f, "total={} bps",
-		       (speed_f as u64).to_formatted_string(&locale)),
+		write!(f, " => total={} bytes/s",
+		       (speed_f as u64).to_formatted(),
+),
 
 	    Some((speed_f, speed_n))	=>
-		write!(f, "file={} bps, net={} bps",
-		       (speed_f as u64).to_formatted_string(&locale),
-		       (speed_n as u64).to_formatted_string(&locale)),
+		write!(f, " => file={} bytes/s, net={} bytes/s",
+		       (speed_f as u64).to_formatted(),
+		       (speed_n as u64).to_formatted()),
 	}
     }
 }
@@ -67,7 +67,6 @@ use tracing::field::Empty;
 		    remote = Empty,
 		    local = Empty,
 		    filename = Empty,
-		    filesize = Empty,
 		    op = Empty))]
 async fn handle_request(env: std::sync::Arc<Environment>,
 			id: u64,
@@ -94,8 +93,8 @@ async fn handle_request(env: std::sync::Arc<Environment>,
 
     match res {
 	Ok(stats)	=> {
-	    info!("stats: {}", stats);
-	    info!("speed: {}", SpeedInfo::new(instant, stats))
+	    info!(parent: tracing::Span::none(),
+		  "conn#{}: {}, {}", id, &stats, SpeedInfo::new(instant, &stats))
 	},
 	Err(e)	=> error!("request failed: {:?}", e),
     };

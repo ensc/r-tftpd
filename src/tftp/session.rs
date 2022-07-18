@@ -3,7 +3,7 @@ use std::io::IoSlice;
 const RETRY_CNT: u32 = 5;
 
 use crate::{ Error, Result };
-use crate::util::{ SocketAddr, UdpSocket };
+use crate::util::{ SocketAddr, UdpSocket, ToFormatted };
 
 use super::{ Request, RequestError, Datagram, Oack, Xfer, SequenceId };
 
@@ -16,6 +16,9 @@ pub struct Stats {
     pub num_timeouts:	u32,
     pub window_size:	u16,
     pub block_size:	u16,
+    pub filename:	String,
+    pub remote_ip:	String,
+    pub local_ip:	String,
 }
 
 impl Stats {
@@ -38,20 +41,19 @@ impl Stats {
 
 impl std::fmt::Display for Stats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-	use num_format::{ ToFormattedString, SystemLocale };
-	let locale = SystemLocale::default().unwrap();
+	write!(f, "\"{}\" ({} => {}, {}x{}) {} bytes", self.filename,
+	       self.local_ip, self.remote_ip,
+	       self.window_size, self.block_size,
+	       self.filesize.to_formatted())?;
 
-	if ! self.has_errors() {
-            write!(f, "filesize={}, windowsize={}, blocksize={}",
-		   self.filesize.to_formatted_string(&locale), self.window_size, self.block_size)
-	} else {
-            write!(f, "filesize={}, sent={} ({} retries, {} wasted, {} timeouts), windowsize={}, blocksize={}",
-		   self.filesize.to_formatted_string(&locale),
-		   self.xmitsz.to_formatted_string(&locale),
-		   self.retries, self.wastedsz.to_formatted_string(&locale),
-		   self.num_timeouts,
-		   self.window_size, self.block_size)
+	if self.has_errors() {
+            write!(f, ", sent={} ({} retries, {} wasted, {} timeouts)",
+		   self.xmitsz.to_formatted(),
+		   self.retries, self.wastedsz.to_formatted(),
+		   self.num_timeouts)?
 	}
+
+	Ok(())
     }
 }
 
@@ -212,6 +214,10 @@ impl <'a> Session<'a> {
 
 	let mut fetcher = Builder::new(self.env).instanciate(&req.get_filename())?;
 
+	stats.filename = req.get_filename().to_string_lossy().into_owned();
+	stats.remote_ip = self.remote.to_string();
+	stats.local_ip = self.sock.local_addr().unwrap().to_string();
+
 	if let Err(e) = fetcher.open() {
 	    self.send_err(e.clone()).await?;
 	    return Err(e);
@@ -221,7 +227,6 @@ impl <'a> Session<'a> {
 
 	if let Some(sz) = fsize {
 	    stats.filesize = sz;
-	    tracing::Span::current().record("filesize", &sz);
 	}
 
 	let mut seq = match req.has_options() {

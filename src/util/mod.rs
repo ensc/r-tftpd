@@ -7,6 +7,25 @@ pub use udpsocket::{ UdpSocket,
 		     RecvInfo as UdpRecvInfo };
 pub use bucket::Bucket;
 
+lazy_static::lazy_static!{
+    pub static ref RUST_FMT: num_format::CustomFormat =
+	num_format::CustomFormat::builder()
+	.separator("_")
+	.build()
+	.unwrap();
+}
+
+pub trait ToFormatted {
+    fn to_formatted(&self) -> String
+    where
+	Self: num_format::ToFormattedString,
+    {
+	self.to_formatted_string(&*RUST_FMT)
+    }
+}
+
+impl <T: num_format::ToFormattedString> ToFormatted for T {}
+
 pub trait ToLower {
     type Char;
     fn to_lower(self) -> Vec<Self::Char>;
