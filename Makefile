@@ -5,6 +5,8 @@ CARGO_FILES = \
 	.cargo/config \
 	Cargo.toml \
 
+srcdir = .
+
 all:
 
 include mk/init.mk
