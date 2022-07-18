@@ -12,7 +12,47 @@ pub struct Stats {
     pub filesize:	u64,
     pub xmitsz:		u64,
     pub retries:	u32,
+    pub wastedsz:	u64,
     pub num_timeouts:	u32,
+    pub window_size:	u16,
+    pub block_size:	u16,
+}
+
+impl Stats {
+    pub fn has_errors(&self) -> bool {
+	self.filesize != self.xmitsz ||
+	    self.retries != 0 ||
+	    self.wastedsz != 0 ||
+	    self.num_timeouts != 0
+    }
+
+    pub fn speed_bit_per_s(&self, duration: std::time::Duration) -> Option<(f32, f32)> {
+	if duration.is_zero() {
+	    return None;
+	}
+
+	Some(((self.filesize as f64 / duration.as_secs_f64()) as f32,
+	      (self.xmitsz as f64 / duration.as_secs_f64()) as f32))
+    }
+}
+
+impl std::fmt::Display for Stats {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	use num_format::{ ToFormattedString, SystemLocale };
+	let locale = SystemLocale::default().unwrap();
+
+	if ! self.has_errors() {
+            write!(f, "filesize={}, windowsize={}, blocksize={}",
+		   self.filesize.to_formatted_string(&locale), self.window_size, self.block_size)
+	} else {
+            write!(f, "filesize={}, sent={} ({} retries, {} wasted, {} timeouts), windowsize={}, blocksize={}",
+		   self.filesize.to_formatted_string(&locale),
+		   self.xmitsz.to_formatted_string(&locale),
+		   self.retries, self.wastedsz.to_formatted_string(&locale),
+		   self.num_timeouts,
+		   self.window_size, self.block_size)
+	}
+    }
 }
 
 pub struct Session<'a> {
@@ -192,12 +232,24 @@ impl <'a> Session<'a> {
 	    }
 	};
 
+	stats.window_size = self.window_size;
+	stats.block_size  = self.block_size;
+
 	let mut xfer = Xfer::new(&fetcher, self.block_size, self.window_size);
 	let mut retry = RETRY_CNT;
 	let mut is_startup = true;
 
 	loop {
-	    xfer.fill_window(seq, &mut fetcher).await?;
+	    match xfer.fill_window(seq, &mut fetcher).await? {
+		0	=> {},
+		v	=> {
+		    debug!("retransmitting {:?}+", seq);
+
+		    stats.retries += 1;
+		    stats.wastedsz += v as u64;
+		}
+	    }
+
 
 	    if xfer.is_eof() {
 		break;

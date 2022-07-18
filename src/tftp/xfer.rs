@@ -194,7 +194,7 @@ impl <'a> Xfer<'a> {
 	Ok(())
     }
 
-    pub async fn fill_window<'b>(&mut self, blk_id: SequenceId, fetcher: &'b mut Fetcher) -> Result<()>
+    pub async fn fill_window<'b>(&mut self, blk_id: SequenceId, fetcher: &'b mut Fetcher) -> Result<usize>
 //    where
 //	'b: 'a
     {
@@ -204,9 +204,7 @@ impl <'a> Xfer<'a> {
 
 	self.free_blocks(blk_id)?;
 
-	if self.active_sz > 0 {
-	    debug!("retransmitting {:?}+", blk_id);
-	}
+	let res = self.active_sz as usize;
 
 	while self.active_sz < self.window_size() && !self.is_eof {
 	    let block = self.alloc_block().unwrap();
@@ -225,7 +223,7 @@ impl <'a> Xfer<'a> {
 	    debug!("read {}; active_sz={}", sz, self.active_sz);
 	}
 
-	Ok(())
+	Ok(res)
     }
 
     pub fn is_eof(&self) -> bool

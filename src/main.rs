@@ -43,19 +43,34 @@ impl SpeedInfo {
 
 impl std::fmt::Display for SpeedInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-	write!(f, "{}ms", self.duration.as_millis())
+	use num_format::{ ToFormattedString, SystemLocale };
+	let locale = SystemLocale::default().unwrap();
+
+	match self.stats.speed_bit_per_s(self.duration) {
+	    None			=> write!(f, "n/a"),
+	    Some((speed_f, speed_n)) if speed_f == speed_n	=>
+		write!(f, "total={} bps",
+		       (speed_f as u64).to_formatted_string(&locale)),
+
+	    Some((speed_f, speed_n))	=>
+		write!(f, "file={} bps, net={} bps",
+		       (speed_f as u64).to_formatted_string(&locale),
+		       (speed_n as u64).to_formatted_string(&locale)),
+	}
     }
 }
 
 use tracing::field::Empty;
 
 #[instrument(skip_all,
-	     fields(remote = Empty,
+	     fields(id = id,
+		    remote = Empty,
 		    local = Empty,
 		    filename = Empty,
 		    filesize = Empty,
 		    op = Empty))]
 async fn handle_request(env: std::sync::Arc<Environment>,
+			id: u64,
 			info: UdpRecvInfo,
 			req: Vec<u8>,
 			bucket: Arc<Bucket>)
@@ -78,8 +93,11 @@ async fn handle_request(env: std::sync::Arc<Environment>,
     };
 
     match res {
-	    Ok(stats)	=> info!("completed in {}", SpeedInfo::new(instant, stats)),
-	    Err(e)	=> error!("request failed: {:?}", e),
+	Ok(stats)	=> {
+	    info!("stats: {}", stats);
+	    info!("speed: {}", SpeedInfo::new(instant, stats))
+	},
+	Err(e)	=> error!("request failed: {:?}", e),
     };
 }
 
@@ -87,13 +105,16 @@ async fn run_tftpd_loop(env: std::sync::Arc<Environment>, sock: UdpSocket) -> Re
     let mut buf = vec![0u8; 1500];
 
     let bucket = Arc::new(Bucket::new(env.max_connections));
+    let mut num = 0;
 
     loop {
 	let info = sock.recvmsg(&mut buf).await?;
 	let request = Vec::from(&buf[..info.size]);
 
-	tokio::task::spawn(handle_request(env.clone(), info,
+	tokio::task::spawn(handle_request(env.clone(), num, info,
 					  request, bucket.clone()));
+
+	num += 1;
     }
 }
 
