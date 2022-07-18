@@ -23,7 +23,6 @@ workflow:
     CARGO_BUILD_FLAGS: '--all-targets --tests --benches'
     RUSTUP_CHAIN: stable
     _CARGO: "cargo +$RUSTUP_CHAIN"
-    LLVM_PROFILE_FILE: "r-tftpd-%p-%m.profraw"
 
   before_script:
     - sudo -iH rm -f /etc/sudoers
@@ -41,6 +40,8 @@ workflow:
     - _make build
     - _make test
     - _make install DESTDIR=`pwd`/i
+    - _make version-info
+    - _make run-grcov || ':'
 
   artifacts:
     when: always
@@ -58,4 +59,4 @@ build:debug:
   extends: [ ".build" ]
   variables:
     RUSTUP_CHAIN: nightly
-    RUSTFLAGS: "-Cinstrument-coverage"
+    RUN_GRCOV: t
