@@ -37,6 +37,7 @@ fn normalize_path(p: &std::path::Path) -> Result<std::path::PathBuf>
 #[derive(PartialEq, Debug)]
 enum LookupResult {
     Path(PathBuf),
+    #[cfg(feature = "proxy")]
     Uri(http::uri::Uri),
 }
 
@@ -117,7 +118,10 @@ where
 	None			=> Ok(LookupResult::Path(dir)),
 	Some(None)		=> Err(Error::StringConversion),
 	Some(Some(Err(_)))	=> Err(Error::UriParse),
+	#[cfg(feature = "proxy")]
 	Some(Some(Ok(u)))	=> Ok(LookupResult::Uri(u)),
+	#[cfg(not(feature = "proxy"))]
+	Some(Some(Ok(_)))	=> Err(Error::NotImplemented),
     }
 }
 
@@ -132,7 +136,8 @@ impl <'a> Builder<'a> {
     pub fn instanciate(&'a self, p: &std::path::Path) -> Result<super::Fetcher> {
 	match lookup_path(&self.env.dir, p, self.env.fallback_uri.as_ref())? {
 	    LookupResult::Path(p)	=> Ok(Fetcher::new_file(&p)),
-	    _ => unreachable!(),
+	    #[cfg(feature = "proxy")]
+	    LookupResult::Uri(_uri)	=> unreachable!(),
 	}
     }
 }
@@ -186,12 +191,17 @@ mod test {
 
 	assert_eq!(lookup_path(tmp_path, "/b/foo", fb_none.clone()).unwrap(),
 		   LookupResult::Path(tmp_path.join("b/foo")));
-	assert_eq!(lookup_path(tmp_path, "/a/link-0", fb_none.clone()).unwrap(),
-		   LookupResult::Uri("http://test.example.com/foo".parse().unwrap()));
-	assert_eq!(lookup_path(tmp_path, "/a/link-0/test", fb_none.clone()).unwrap(),
-		   LookupResult::Uri("http://test.example.com/foo/test".parse().unwrap()));
-	assert_eq!(lookup_path(tmp_path, "/a/link-3/test", fb_none.clone()).unwrap(),
-		   LookupResult::Uri("https+nocache://test.example.com/foo/test".parse().unwrap()));
+
+	#[cfg(feature = "proxy")]
+	{
+	    assert_eq!(lookup_path(tmp_path, "/a/link-0", fb_none.clone()).unwrap(),
+		       LookupResult::Uri("http://test.example.com/foo".parse().unwrap()));
+	    assert_eq!(lookup_path(tmp_path, "/a/link-0/test", fb_none.clone()).unwrap(),
+		       LookupResult::Uri("http://test.example.com/foo/test".parse().unwrap()));
+	    assert_eq!(lookup_path(tmp_path, "/a/link-3/test", fb_none.clone()).unwrap(),
+		       LookupResult::Uri("https+nocache://test.example.com/foo/test".parse().unwrap()));
+	}
+
 	assert_eq!(lookup_path(tmp_path, "/a/nolink-0", fb_none.clone()).unwrap(),
 		   LookupResult::Path(tmp_path.join("a/nolink-0")));
 	assert_eq!(lookup_path(tmp_path, "/a/nolink-0/file", fb_none.clone()).unwrap(),
