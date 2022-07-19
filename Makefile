@@ -1,5 +1,6 @@
 IS_RELEASE ?=
 IS_OFFLINE ?=
+DEFAULT_FEATURES ?= proxy
 
 CARGO_FILES = \
 	.cargo/config \

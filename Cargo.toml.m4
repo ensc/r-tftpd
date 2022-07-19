@@ -14,9 +14,11 @@ edition = "2021"
 
 [features]
 default = [ m4_ifdef(``CARGO_DEFAULT_FEATURES'',``CARGO_DEFAULT_FEATURES'') ]
+
+proxy = [ "dep:reqwest" ]
+
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["rt", "time", "net", "macros"] }
-reqwest = { version = "*", default-features = false, features = ["default-tls", "gzip", "brotli", "deflate", "stream", "socks"] }
 thiserror = "*"
 lazy_static = "*"
 regex = "*"
@@ -29,6 +31,12 @@ nix = { version = "*", default-features = false, features = ["socket", "uio", "n
 #systemd = { version = "*", default-features = false, features = [] }
 clap = { version = "*", features = ["derive", "color", "std"] }
 num-format = { version = "*", features = ["with-system-locale"] }
+
+[dependencies.reqwest]
+version = "*"
+optional = true
+default-features = false
+features = ["default-tls", "gzip", "brotli", "deflate", "stream", "socks"]
 
 [dev-dependencies]
 tempdir = "*"
