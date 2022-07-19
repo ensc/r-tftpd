@@ -140,6 +140,16 @@ async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
 
 use clap::Parser;
 
+clap::arg_enum! {
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum LogFormat {
+	Default,
+	Compact,
+	Full,
+	Json,
+    }
+}
+
 #[derive(clap::Parser, Debug)]
 struct CliOpts {
     #[clap(short, long, help("use systemd fd propagation"), value_parser)]
@@ -162,12 +172,33 @@ struct CliOpts {
 
     #[clap(short, long, value_parser, value_name("URI"), help("fallback uri"))]
     fallback:		Option<String>,
+
+    #[clap(short('L'), long, value_parser, value_name("FMT"), help("log format"),
+	   default_value("default"))]
+    log_format:		LogFormat,
 }
 
 fn main() {
-    tracing_subscriber::fmt::init();
+    let mut args = CliOpts::parse();
 
-    let args = CliOpts::parse();
+    if args.log_format == LogFormat::Default {
+	args.log_format = if args.systemd {
+	    // when running under systemd, do not emit the timestamp because
+	    // output is usually recorded in the journal.  Accuracy in journal
+	    // should suffice for most usecases.
+
+	    LogFormat::Compact
+	} else {
+	    LogFormat::Full
+	}
+    }
+
+    match args.log_format {
+	LogFormat::Compact		=> tracing_subscriber::fmt().without_time().init(),
+	LogFormat::Json			=> tracing_subscriber::fmt().json().init(),
+	LogFormat::Full			=> tracing_subscriber::fmt().init(),
+	LogFormat::Default		=> unreachable!(),
+    }
 
     let env = Environment {
 	dir:			".".into(),
