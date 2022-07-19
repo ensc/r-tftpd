@@ -157,7 +157,7 @@ impl UdpSocket {
     {
 	use nix::Error as E;
 
-	let total_sz = iov.iter().map(|v| v.len()).sum();
+	let total_sz: usize = iov.iter().map(|v| v.len()).sum();
 
 	// TODO: this is too expensive but nix api makes it difficulty/impossible
 	// to use the `dyn SockaddrLike` object directly
