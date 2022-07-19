@@ -6,7 +6,8 @@ CARGO_TARGET_DIR ?=
 CARGO_ACTUAL_TARGET_DIR ?= $(shell ${__cargo_target_dir})
 
 M4_FLAGS += \
-	-DCARGO_TARGET_DIR='${CARGO_TARGET_DIR}'
+	-DCARGO_TARGET_DIR='${CARGO_TARGET_DIR}' \
+	-DCARGO_DEFAULT_FEATURES='$(subst ${_space},${_comma},$(patsubst %,"%",${DEFAULT_FEATURES}))' \
 
 __cargo_target_dir = ${CARGO} ${CARGO_TOOLCHAIN} metadata \
 	--offline --no-deps --format-version 1 | \

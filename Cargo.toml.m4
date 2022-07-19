@@ -8,6 +8,8 @@ edition = "2021"
 
 [workspace]
 
+[features]
+default = [ m4_ifdef(``CARGO_DEFAULT_FEATURES'',``CARGO_DEFAULT_FEATURES'') ]
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["rt", "time", "net", "macros"] }
 reqwest = { version = "*", default-features = false, features = ["default-tls", "gzip", "brotli", "deflate", "stream", "socks"] }
