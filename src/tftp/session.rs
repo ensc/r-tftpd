@@ -41,13 +41,13 @@ impl Stats {
 
 impl std::fmt::Display for Stats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-	write!(f, "\"{}\" ({} => {}, {}x{}) {} bytes", self.filename,
+	write!(f, "\"{}\" ({} => {}, {}x {}) {} bytes", self.filename,
 	       self.local_ip, self.remote_ip,
 	       self.window_size, self.block_size,
 	       self.filesize.to_formatted())?;
 
 	if self.has_errors() {
-            write!(f, ", sent={} ({} retries, {} wasted, {} timeouts)",
+            write!(f, ", sent={} ({} retries, {} blocks wasted, {} timeouts)",
 		   self.xmitsz.to_formatted(),
 		   self.retries, self.wastedsz.to_formatted(),
 		   self.num_timeouts)?
