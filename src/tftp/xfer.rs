@@ -280,7 +280,7 @@ mod test {
 			28	=> assert_eq!(data, &[10, 11]),
 			29	=> assert_eq!(data, &[12, 13]),
 			30	=> assert_eq!(data, &[14, 15]),
-			31	=> assert_eq!(data, &[]),
+			31	=> assert_eq!(data, &[] as &[u8]),
 
 			50	=> assert_eq!(data, &[ 0,  1]),
 			51	=> assert_eq!(data, &[ 2 ]),
