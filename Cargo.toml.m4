@@ -24,7 +24,7 @@ lazy_static = "*"
 regex = "*"
 http = "*"
 tracing = "*"
-tracing-subscriber = "*"
+tracing-subscriber = { version = "*", features = ["json"] }
 listenfd = "*"
 libc = "*"
 nix = { version = "*", default-features = false, features = ["socket", "uio", "net", "socket"] }
