@@ -188,7 +188,7 @@ impl <'a> Session<'a> {
 		return Err(Error::BadAck);
 	    }
 	    r			=> {
-		warn!("bad response to OACK: {:?}", r);
+		warn!("bad response to OACK: {}", r);
 		return Err(Error::Protocol("bad response to OACK"));
 	    },
 	};

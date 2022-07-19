@@ -15,6 +15,19 @@ pub enum Datagram<'a> {
     OAck
 }
 
+impl std::fmt::Display for Datagram<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+	    Self::Read(r)	=> write!(f, "RRQ({:?})", r),
+	    Self::Write(r)	=> write!(f, "WRQ({:?})", r),
+	    Self::Data(id, d)	=> write!(f, "DATA(#{}, ..{})", id.as_u16(), d.len()),
+	    Self::Ack(id)	=> write!(f, "ACK(#{}", id.as_u16()),
+	    Self::Error(err, s)	=> write!(f, "ERROR({}, \"{}\")", err, String::from_utf8_lossy(s)),
+	    Self::OAck		=> write!(f, "OACK"),
+	}
+    }
+}
+
 trait TftpSlice {
     fn assert_len(&self, sz: usize) -> RequestResult<()>;
     fn get_u16(&self, idx: usize) -> u16;
