@@ -9,3 +9,6 @@ INSTALL_DATA = ${INSTALL} -p -m 0644
 
 TAR_C_FLAGS = --owner root --group root --mode a+rX,go-w
 TAR_X_FLAGS =
+
+_space = $(eval) $(eval)
+_comma = ,
