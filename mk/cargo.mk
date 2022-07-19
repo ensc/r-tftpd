@@ -23,6 +23,7 @@ endif
 	rm -f ${CARGO_FILES}
 
 all:		.cargo-prepare
+build:		${CARGO_FILES}
 prepare:	.cargo-prepare
 clean:		.cargo-clean
 
