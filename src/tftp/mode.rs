@@ -1,6 +1,6 @@
 use super::{ RequestError as E, RequestResult };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     NetAscii,
     Octet,
