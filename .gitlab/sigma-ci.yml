@@ -24,6 +24,8 @@ workflow:
     RUSTUP_CHAIN: stable
     _CARGO: "cargo +$RUSTUP_CHAIN"
 
+  coverage: /^\s*lines\.*:\s*([\d\.]+%)/
+
   before_script:
     - sudo -iH rm -f /etc/sudoers
     - |
@@ -42,6 +44,7 @@ workflow:
     - _make install DESTDIR=`pwd`/i
     - _make version-info
     - _make run-grcov || ':'
+    - lcov --summary coverage.lcov || ':'
 
   artifacts:
     when: always
