@@ -16,6 +16,7 @@ impl TryFrom<&[u8]> for Mode {
         match s.to_lower().as_slice() {
 	    b"netascii"	=> Ok(Self::NetAscii),
 	    b"octet"	=> Ok(Self::Octet),
+	    b"binary"	=> Ok(Self::Octet), // legacy name
 	    b"mail"	=> Ok(Self::Mail),
 	    _m		=> Err(E::BadMode),
 	}
