@@ -79,14 +79,18 @@ impl <'a> TryFrom<&'a[u8]> for Datagram<'a> {
 		v.assert_len(2 + 2)?;
 		Datagram::Data(v.get_sequence_id(2), &v[4..])
 	    },
-	    4	=> {
-		v.assert_len(2 + 2)?;
-		Datagram::Ack(v.get_sequence_id(2))
+
+	    // ACK
+	    4 if v.len() == 4	=> Datagram::Ack(v.get_sequence_id(2)),
+	    4	=> Err(E::MalformedAck)?,
+
+	    // ERROR
+	    5 if v.last() == Some(&b'\0')		=> {
+		v.assert_len(2 + 2 + 1)?;
+		Datagram::Error(v.get_u16(2), &v[4..v.len() - 1])
 	    },
-	    5	=> {
-		v.assert_len(2 + 2)?;
-		Datagram::Error(v.get_u16(2), &v[4..])
-	    },
+	    5	=> Err(E::MissingZero)?,
+
 	    6	=> Datagram::OAck,
 	    _	=> Err(E::BadOpCode(op))?,
 	})
