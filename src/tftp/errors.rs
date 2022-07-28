@@ -22,6 +22,8 @@ pub enum RequestError {
     WriteUnsupported,
     #[error("operation not supported")]
     OperationUnsupported,
+    #[error("malformed ACK")]
+    MalformedAck,
 }
 
 pub type RequestResult<T> = std::result::Result<T, RequestError>;
