@@ -229,13 +229,11 @@ impl <'a> Session<'a> {
 	    stats.filesize = sz;
 	}
 
-	let mut seq = match req.has_options() {
-	    false	=> SequenceId::new(0),
-	    true	=> {
-		self.run_oack(Oack::from_request(&req), fsize).await?;
-		SequenceId::new(1)
-	    }
-	};
+	if req.has_options() {
+	    self.run_oack(Oack::from_request(&req), fsize).await?;
+	}
+
+	let mut seq = SequenceId::new(1);
 
 	stats.window_size = self.window_size;
 	stats.block_size  = self.block_size;
