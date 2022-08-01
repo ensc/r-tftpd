@@ -19,6 +19,14 @@ impl Data<'_>
 
 	Self::Owned(data)
     }
+
+    pub fn get_inner(&self, sz: usize) -> &[u8] {
+	match &self {
+	    Data::Owned(d)	=> &d[0..sz],
+	    Data::Ref(Some(d))	=> &d[0..sz],
+	    Data::Ref(None)	=> panic!("Data::Ref is None"),
+	}
+    }
 }
 
 struct Block<'a> {
@@ -59,11 +67,7 @@ impl <'a> Block<'a> {
     }
 
     pub fn get_data(&self) -> &[u8] {
-	match &self.data {
-	    Data::Owned(d)	=> &d[0..self.len as usize],
-	    Data::Ref(Some(d))	=> &d[0..self.len as usize],
-	    Data::Ref(None)	=> panic!("Data::Ref is None"),
-	}
+	self.data.get_inner(self.len as usize)
     }
 
     pub async fn fill<'b>(&mut self, fetcher: &'b mut Fetcher) -> Result<usize>
