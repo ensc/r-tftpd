@@ -166,7 +166,7 @@ mod test {
     }
 
     #[test]
-
+    #[allow(clippy::redundant_clone)]
     fn test_lookup() {
 	use tempdir::TempDir;
 	use std::os::unix::fs::symlink;

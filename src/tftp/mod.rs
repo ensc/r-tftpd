@@ -48,6 +48,7 @@ impl SequenceId {
     }
 
     #[cfg(test)]
+    #[allow(clippy::nonminimal_bool)]
     pub fn in_range(self, a: Self, b: Self) -> bool
     {
 	assert!(a.0 != b.0);
