@@ -20,6 +20,7 @@ pub struct Stats {
     pub filename:	String,
     pub remote_ip:	String,
     pub local_ip:	String,
+    pub is_complete:	bool,
 }
 
 impl Stats {
@@ -256,6 +257,7 @@ impl <'a> Session<'a> {
 	    }
 
 	    if xfer.is_eof() {
+		stats.is_complete = true;
 		break;
 	    }
 
