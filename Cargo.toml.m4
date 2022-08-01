@@ -40,6 +40,8 @@ features = ["default-tls", "gzip", "brotli", "deflate", "stream", "socks"]
 
 [dev-dependencies]
 tempdir = "*"
+rand = { version = "0.8.*", features = ["min_const_gen"] }
+tokio = { version = "1", default-features = false, features = ["rt", "time", "net", "macros", "process"] }
 
 [profile.release]
 lto = true
