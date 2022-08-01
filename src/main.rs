@@ -17,6 +17,8 @@ use tftp::{ Session, SessionStats };
 
 pub use errors::{ Error, Result };
 
+#[cfg(test)]
+mod test;
 
 pub struct Environment {
     dir:		std::path::PathBuf,
@@ -111,6 +113,11 @@ async fn run_tftpd_loop(env: std::sync::Arc<Environment>, sock: UdpSocket) -> Re
     loop {
 	let info = sock.recvmsg(&mut buf).await?;
 	let request = Vec::from(&buf[..info.size]);
+
+	#[cfg(test)]
+	if &request[0..2] == b"QQ" {
+	    break Ok(());
+	}
 
 	tokio::task::spawn(handle_request(env.clone(), num, info,
 					  request, bucket.clone()));
