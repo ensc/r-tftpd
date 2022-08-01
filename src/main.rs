@@ -49,8 +49,10 @@ impl std::fmt::Display for SpeedInfo<'_> {
 	    None			=> Ok(()),
 	    Some((speed_f, speed_n)) if speed_f == speed_n	=>
 		write!(f, " => total={} bytes/s",
-		       (speed_f as u64).to_formatted(),
-),
+		       (speed_f as u64).to_formatted()),
+
+	    Some((_, speed_n)) if !self.stats.is_complete	=>
+		write!(f, " => net={} bytes/s", (speed_n as u64).to_formatted()),
 
 	    Some((speed_f, speed_n))	=>
 		write!(f, " => file={} bytes/s, net={} bytes/s",
