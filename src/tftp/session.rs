@@ -1,6 +1,7 @@
 use std::io::IoSlice;
 
 const RETRY_CNT: u32 = 5;
+const GENERIC_PKT_SZ: usize = 512;
 
 use crate::{ Error, Result };
 use crate::util::{ SocketAddr, UdpSocket, ToFormatted };
@@ -119,7 +120,7 @@ impl <'a> Session<'a> {
 
     async fn send_err(self, e: Error) -> Result<()>
     {
-	let mut msg = Vec::<u8>::with_capacity(1500);
+	let mut msg = Vec::<u8>::with_capacity(GENERIC_PKT_SZ);
 
 	warn!("error: {}", e);
 
@@ -153,7 +154,7 @@ impl <'a> Session<'a> {
 
     async fn send_oack(&self, oack: Oack) -> Result<()>
     {
-	let mut msg = Vec::<u8>::with_capacity(1500);
+	let mut msg = Vec::<u8>::with_capacity(GENERIC_PKT_SZ);
 
 	oack.fill_buf(&mut msg);
 
@@ -174,9 +175,9 @@ impl <'a> Session<'a> {
 	oack.update_window_size(self.env.max_window_size, |v| self.window_size = v);
 	oack.update_timeout(|v| self.timeout = v);
 
-	let mut buf = vec![0u8; 1500];
-
 	self.send_oack(oack).await?;
+
+	let mut buf = vec![0u8; GENERIC_PKT_SZ];
 
 	let resp = Datagram::recv(&self.sock, &mut buf, &self.remote, self.timeout).await?;
 
