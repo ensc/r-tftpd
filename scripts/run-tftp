@@ -1,0 +1,77 @@
+#! /bin/bash
+
+IP=$1
+PORT=$2
+FILE=$3
+INSTANCE=$4
+
+PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin
+
+set -e
+
+is() {
+    local prog=$1
+    shift
+
+    eval "_is_$prog" "$@" 2>/dev/null >/dev/null
+}
+
+compare() {
+    cmp "$FILE" output
+}
+
+## tftp-hpa
+_is_tftp_hpa_fedora() {
+    type -p tftp || return 1
+
+    tftp -V | grep "^tftp-hpa 5\."
+}
+
+run_tftp_hpa_fedora() {
+    is tftp_hpa_fedora || return 23
+
+    tftp -m binary "$IP" "$PORT" -c get "$FILE" output
+}
+
+## busybox tftp
+_is_tftp_busybox() {
+    type -p busybox || return 1
+    busybox --list | grep -q '^tftp$' || return 1
+}
+
+run_tftp_busybox() {
+    is tftp_busybox || return 23
+
+    busybox tftp -g -l output -r "$FILE" ${1:+-b $1} "$IP" "$PORT"
+}
+
+rm -f output
+test -w .
+
+case $INSTANCE in
+  0)
+	## test the test code...
+	exit 23
+	;;
+
+  1)
+	## fedora tftp client
+	run_tftp_hpa_fedora
+	compare
+	;;
+
+  2)
+	## busybox tftp client with 512 blocksize
+	run_tftp_busybox
+	compare
+	;;
+
+  3)
+	## busybox tftp client with 1400 blocksize
+	run_tftp_busybox 1400
+	compare
+	;;
+
+  4)
+	exit 42
+esac
