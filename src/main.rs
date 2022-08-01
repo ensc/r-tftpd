@@ -122,7 +122,6 @@ enum Either<T: Sized, U: Sized> {
     B(U),
 }
 
-#[tokio::main(flavor = "current_thread")]
 async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
     // UdpSocket creation must happen with active Tokio runtime
     let mut sock = match info {
@@ -133,9 +132,12 @@ async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
     sock.set_nonblocking()?;
     sock.set_request_pktinfo()?;
 
-    run_tftpd_loop(std::sync::Arc::new(env), sock).await?;
+    run_tftpd_loop(std::sync::Arc::new(env), sock).await
+}
 
-    Ok(())
+#[tokio::main(flavor = "current_thread")]
+async fn tokio_main(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
+    run(env, info).await
 }
 
 use clap::Parser;
@@ -221,5 +223,5 @@ fn main() {
 	Some(fd)	=> Either::B(fd),
     };
 
-    run(env, info).unwrap();
+    tokio_main(env, info).unwrap();
 }

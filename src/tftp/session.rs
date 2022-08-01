@@ -91,8 +91,7 @@ impl <'a> Session<'a> {
 
     async fn send(&self, msg: &[u8]) -> Result<()>
     {
-	self.sock.sendto(msg, self.remote).await?;
-	Ok(())
+	self.sock.sendto(msg, self.remote).await
     }
 
     async fn send_slice(&self, data: &[IoSlice<'_>]) -> Result<()>
@@ -208,10 +207,9 @@ impl <'a> Session<'a> {
     {
 	use crate::fetcher::Builder;
 
-	let mut stats = Stats::default();
-
 	self.log_request(&req, "read");
 
+	let mut stats = Stats::default();
 	let mut fetcher = Builder::new(self.env).instanciate(&req.get_filename())?;
 
 	stats.filename = req.get_filename().to_string_lossy().into_owned();
@@ -233,11 +231,10 @@ impl <'a> Session<'a> {
 	    self.run_oack(Oack::from_request(&req), fsize).await?;
 	}
 
-	let mut seq = SequenceId::new(1);
-
 	stats.window_size = self.window_size;
 	stats.block_size  = self.block_size;
 
+	let mut seq = SequenceId::new(1);
 	let mut xfer = Xfer::new(&fetcher, self.block_size, self.window_size);
 	let mut retry = RETRY_CNT;
 	let mut is_startup = true;
@@ -252,7 +249,6 @@ impl <'a> Session<'a> {
 		    stats.wastedsz += v as u64;
 		}
 	    }
-
 
 	    if xfer.is_eof() {
 		break;
@@ -269,10 +265,11 @@ impl <'a> Session<'a> {
 
 	    match resp {
 		Err(Error::Timeout) if retry > 0    => {
+		    debug!("timeout; resending seq {}", seq.as_u16());
 		    retry -= 1;
 		    stats.num_timeouts += 1;
-		    debug!("timeout; resending seq {}", seq.as_u16());
 		},
+
 		Ok(Datagram::Ack(id))	=> {
 		    debug!("got ACK #{}", id.as_u16());
 		    is_startup = false;
@@ -295,6 +292,7 @@ impl <'a> Session<'a> {
 		    warn!("timeout while waiting for ACK");
 		    return Err(Error::Timeout);
 		},
+
 		r			=> {
 		    warn!("bad response to DATA: {:?}", r);
 		    return Err(Error::Protocol("bad response to DATA"));
