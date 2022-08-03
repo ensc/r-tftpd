@@ -168,10 +168,10 @@ mod test {
     #[test]
     #[allow(clippy::redundant_clone)]
     fn test_lookup() {
-	use tempdir::TempDir;
+	use tempfile::TempDir;
 	use std::os::unix::fs::symlink;
 
-	let tmp_dir = TempDir::new("test_lookup").unwrap();
+	let tmp_dir = TempDir::new().unwrap();
 	let tmp_path = tmp_dir.path();
 
 	std::fs::create_dir(tmp_path.join("a")).unwrap();

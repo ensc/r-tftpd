@@ -42,10 +42,10 @@ async fn run_test(ip: std::net::IpAddr)
     use tokio::time::timeout;
     use std::time::Duration;
     use tokio::process::Command;
-    use tempdir::TempDir;
+    use tempfile::TempDir;
     use std::process::{Stdio};
 
-    let dir = TempDir::new("r-tftp-test").unwrap();
+    let dir = TempDir::new().unwrap();
 
     let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
 	.join("scripts/run-tftp");
