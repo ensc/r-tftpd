@@ -5,6 +5,7 @@ use std::net::IpAddr;
 use std::os::unix::prelude::AsRawFd;
 use nix::sys::socket::{self, SockaddrLike, SockaddrStorage};
 use tokio::io::unix::AsyncFd;
+use nix::libc;
 
 use super::SocketAddr;
 

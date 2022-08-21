@@ -26,7 +26,6 @@ http = "*"
 tracing = "*"
 tracing-subscriber = { version = "*", features = ["json"] }
 listenfd = "*"
-libc = "*"
 nix = { version = "*", default-features = false, features = ["socket", "uio", "net", "socket"] }
 #systemd = { version = "*", default-features = false, features = [] }
 clap = { version = "*", features = ["derive", "color", "std"] }
