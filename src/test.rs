@@ -56,6 +56,7 @@ async fn run_test(ip: std::net::IpAddr)
 
     let env = Environment {
 	dir:			dir.path().into(),
+	cache_dir:		std::env::temp_dir(),
 	fallback_uri:		None,
 	max_block_size:		1500,
 	max_window_size:	64,

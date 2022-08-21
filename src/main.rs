@@ -22,6 +22,7 @@ mod test;
 
 pub struct Environment {
     dir:		std::path::PathBuf,
+    cache_dir:		std::path::PathBuf,
     fallback_uri:	Option<std::ffi::OsString>,
     max_block_size:	u16,
     max_window_size:	u16,
@@ -132,6 +133,9 @@ enum Either<T: Sized, U: Sized> {
 }
 
 async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
+    #[cfg(feature = "proxy")]
+    fetcher::Cache::instanciate(&env.cache_dir);
+
     // UdpSocket creation must happen with active Tokio runtime
     let mut sock = match info {
 	Either::A(addr)	=> UdpSocket::bind(addr),
@@ -187,6 +191,10 @@ struct CliOpts {
     #[clap(short('L'), long, value_parser, value_name("FMT"), help("log format"),
 	   default_value("default"))]
     log_format:		LogFormat,
+
+    #[clap(short('C'), long, value_parser, value_name("DIR"),
+	   help("directory used for cache files"))]
+    cache_dir:		Option<String>,
 }
 
 fn main() {
@@ -213,6 +221,7 @@ fn main() {
 
     let env = Environment {
 	dir:			".".into(),
+	cache_dir:		args.cache_dir.map(|s| s.into()).unwrap_or_else(std::env::temp_dir),
 	fallback_uri:		args.fallback.map(|s| s.into()),
 	max_block_size:		1500,
 	max_window_size:	64,

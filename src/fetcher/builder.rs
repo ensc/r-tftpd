@@ -38,7 +38,7 @@ fn normalize_path(p: &std::path::Path) -> Result<std::path::PathBuf>
 enum LookupResult {
     Path(PathBuf),
     #[cfg(feature = "proxy")]
-    Uri(http::uri::Uri),
+    Uri(url::Url),
 }
 
 //#[instrument(level = "trace", skip_all, ret)]
@@ -114,7 +114,7 @@ where
 	}
     }
 
-    match uri.map(|u| u.to_str().map(|u| u.parse::<http::Uri>())) {
+    match uri.map(|u| u.to_str().map(|u| u.parse::<url::Url>())) {
 	None			=> Ok(LookupResult::Path(dir)),
 	Some(None)		=> Err(Error::StringConversion),
 	Some(Some(Err(_)))	=> Err(Error::UriParse),
@@ -137,7 +137,7 @@ impl <'a> Builder<'a> {
 	match lookup_path(&self.env.dir, p, self.env.fallback_uri.as_ref())? {
 	    LookupResult::Path(p)	=> Ok(Fetcher::new_file(&p)),
 	    #[cfg(feature = "proxy")]
-	    LookupResult::Uri(_uri)	=> unreachable!(),
+	    LookupResult::Uri(uri)	=> Ok(Fetcher::new_uri(&uri)),
 	}
     }
 }
