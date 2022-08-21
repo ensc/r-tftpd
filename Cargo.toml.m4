@@ -9,6 +9,10 @@ name = "r-tftpd"
 version = "0.0.1"
 authors = ["Enrico Scholz <enrico.scholz@sigma-chemnitz.de>"]
 edition = "2021"
+description = "TFTP server with RFC 7440 windowsize support"
+license = "GPL-3.0-or-later"
+repository = "https://gitlab-ext.sigma-chemnitz.de/ensc/r-tftpd"
+keywords = ["tftp", "rfc7440", "tftp-server"]
 
 [workspace]
 
