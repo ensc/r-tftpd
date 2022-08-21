@@ -218,12 +218,12 @@ impl <'a> Session<'a> {
 	stats.remote_ip = self.remote.to_string();
 	stats.local_ip = self.sock.local_addr().unwrap().to_string();
 
-	if let Err(e) = fetcher.open() {
+	if let Err(e) = fetcher.open().await {
 	    self.send_err(e.clone()).await?;
 	    return Err(e);
 	}
 
-	let fsize = fetcher.get_size();
+	let fsize = fetcher.get_size().await;
 
 	if let Some(sz) = fsize {
 	    stats.filesize = sz;
