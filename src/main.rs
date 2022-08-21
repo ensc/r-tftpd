@@ -166,6 +166,7 @@ clap::arg_enum! {
 }
 
 #[derive(clap::Parser, Debug)]
+#[clap(author, version, about)]
 struct CliOpts {
     #[clap(short, long, help("use systemd fd propagation"), value_parser)]
     systemd:		bool,
