@@ -105,10 +105,13 @@ impl <'a> Session<'a> {
     {
 	match msg {
 	    Datagram::Data(seq, data)	=> {
-		let seq = seq.as_slice();
+		let mut hdr: [u8; 4] = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
+
+		hdr[0..2].copy_from_slice(&[0, 3]);	    // DATA
+		hdr[2..4].copy_from_slice(&seq.as_slice()); // sequence
+
 		let data = &[
-		    IoSlice::new(&[0, 3]),
-		    IoSlice::new(&seq),
+		    IoSlice::new(&hdr),
 		    IoSlice::new(data),
 		];
 
