@@ -2,8 +2,8 @@
 
 r-tftpd is a tftp server with RFC 7440 "windowsize" support.
 
-It allows only `RRQ` (read) requests; `WRQ` is **not** supported and
-there are no plans to implement it.
+It allows `RRQ` (read) requests; `WRQ` support is incomplete and
+exists only for testing purposes.
 
 # Usage
 

@@ -156,6 +156,15 @@ impl <'a> Session<'a> {
 	self.send(&msg).await
     }
 
+    async fn send_ack(&self, id: SequenceId) -> Result<()>
+    {
+	let msg: [u8; 4] = [ 0, 4,
+			     ((id.as_u16() >> 8) & 0xff) as u8,
+			     ((id.as_u16() >> 0) & 0xff) as u8 ];
+
+	self.send(&msg).await
+    }
+
     async fn send_oack(&self, oack: Oack) -> Result<()>
     {
 	let mut msg = Vec::<u8>::with_capacity(GENERIC_PKT_SZ);
@@ -163,6 +172,87 @@ impl <'a> Session<'a> {
 	oack.fill_buf(&mut msg);
 
 	self.send(&msg).await
+    }
+
+    async fn wrq_oack(&mut self, mut oack: Oack) -> Result<()>
+    {
+	oack.update_block_size(self.env.max_block_size,   |v| self.block_size = v);
+	// TODO: only window size of 1 is supported
+	oack.update_window_size(1, |v| self.window_size = v);
+	oack.update_timeout(|v| self.timeout = v);
+
+	self.send_oack(oack).await?;
+
+	Ok(())
+    }
+
+    async fn run_wrq_devnull(mut self, req: Request<'_>) -> Result<Stats>
+    {
+	self.log_request(&req, "write");
+
+	let mut stats = Stats::default();
+
+	stats.filename = req.get_filename().to_string_lossy().into_owned();
+	stats.remote_ip = self.remote.to_string();
+	stats.local_ip = self.sock.local_addr().unwrap().to_string();
+
+	if !self.env.no_rfc2374 && req.has_options() {
+	    self.wrq_oack(Oack::from_request(&req)).await?;
+	} else {
+	    self.send_ack(SequenceId::new(0)).await?;
+	}
+
+	stats.window_size = self.window_size;
+	stats.block_size  = self.block_size;
+
+	let alloc_len = 4 + self.block_size as usize;
+	let mut buf = Vec::<u8>::with_capacity(alloc_len);
+	let mut seq = SequenceId::new(1);
+
+	#[allow(clippy::uninit_vec)]
+	unsafe { buf.set_len(alloc_len) };
+
+	loop {
+	    let resp = Datagram::recv(&self.sock, buf.as_mut_slice(), &self.remote, self.timeout).await;
+
+	    match resp {
+		Ok(Datagram::Data(id, ..)) if id != seq	=> {
+		    debug!("got DATA with wrong id #{}...", id.as_u16());
+		},
+
+		Ok(Datagram::Data(id, data))		=> {
+		    debug!("got DATA #{} with len {}; throwing it away...", id.as_u16(), data.len());
+		    self.send_ack(id).await?;
+		    seq += 1;
+
+		    stats.xmitsz += data.len() as u64;
+
+		    if data.len() < self.block_size as usize {
+			// last packet
+			break;
+		    }
+		},
+
+		Ok(Datagram::Error(code, info))		=> {
+		    info!("remote site sent error #{} ({})", code, String::from_utf8_lossy(info));
+		    break;
+		}
+
+		Err(Error::Timeout)			=> {
+		    warn!("timeout while waiting for DATA");
+		    return Err(Error::Timeout);
+		},
+
+		r					=> {
+		    warn!("bad response for WRQ: {:?}", r);
+		    return Err(Error::Protocol("bad response to WRQ"));
+		},
+	    }
+	}
+
+	debug!("stats: {:?}", stats);
+
+	Ok(stats)
     }
 
     async fn run_wrq(self, _req: Request<'_>) -> Result<Stats>
@@ -320,8 +410,9 @@ impl <'a> Session<'a> {
 	let op = Datagram::try_from(req.as_slice());
 
 	match op {
-	    Ok(Datagram::Write(r))	=> self.run_wrq(r).await,
-	    Ok(Datagram::Read(r))	=> self.run_rrq(r).await,
+	    Ok(Datagram::Write(r)) if self.env.wrq_devnull	=> self.run_wrq_devnull(r).await,
+	    Ok(Datagram::Write(r))				=> self.run_wrq(r).await,
+	    Ok(Datagram::Read(r))				=> self.run_rrq(r).await,
 	    Ok(_)	=> {
 		self.send_err(RequestError::OperationUnsupported.into()).await?;
 		Err(RequestError::OperationUnsupported.into())

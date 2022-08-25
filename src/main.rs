@@ -29,6 +29,7 @@ pub struct Environment {
     max_connections:	u32,
     timeout:		std::time::Duration,
     no_rfc2374:		bool,
+    wrq_devnull:	bool,
 }
 
 struct SpeedInfo<'a> {
@@ -201,6 +202,10 @@ struct CliOpts {
     #[clap(long, help("disable RFC 2373 (OACK) support; only useful for testing some clients"),
 	   group("test support"), value_parser)]
     no_rfc2374:		bool,
+
+    #[clap(long, help("accept WRQ but throw it away; only useful for testing some clients"),
+	   group("test support"), value_parser)]
+    wrq_devnull:	bool,
 }
 
 fn main() {
@@ -234,6 +239,7 @@ fn main() {
 	max_connections:	args.max_connections,
 	timeout:		std::time::Duration::from_secs_f32(args.timeout),
 	no_rfc2374:		args.no_rfc2374,
+	wrq_devnull:		args.wrq_devnull,
     };
 
     let fd = match args.systemd {
