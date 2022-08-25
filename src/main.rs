@@ -223,10 +223,13 @@ fn main() {
 	}
     }
 
+    let fmt = tracing_subscriber::fmt()
+	.with_env_filter(tracing_subscriber::EnvFilter::from_default_env());
+
     match args.log_format {
-	LogFormat::Compact		=> tracing_subscriber::fmt().without_time().init(),
-	LogFormat::Json			=> tracing_subscriber::fmt().json().init(),
-	LogFormat::Full			=> tracing_subscriber::fmt().init(),
+	LogFormat::Compact		=> fmt.without_time().init(),
+	LogFormat::Json			=> fmt.json().init(),
+	LogFormat::Full			=> fmt.init(),
 	LogFormat::Default		=> unreachable!(),
     }
 
