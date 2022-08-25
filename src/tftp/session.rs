@@ -232,7 +232,7 @@ impl <'a> Session<'a> {
 	    stats.filesize = sz;
 	}
 
-	if req.has_options() {
+	if !self.env.no_rfc2374 && req.has_options() {
 	    self.rrq_oack(Oack::from_request(&req), fsize).await?;
 	}
 

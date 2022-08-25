@@ -62,6 +62,7 @@ async fn run_test(ip: std::net::IpAddr)
 	max_window_size:	64,
 	max_connections:	1,
 	timeout:		Duration::from_secs(3),
+	no_rfc2374:		false,
     };
 
     let addr = std::net::SocketAddr::new(ip, 0);

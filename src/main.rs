@@ -28,6 +28,7 @@ pub struct Environment {
     max_window_size:	u16,
     max_connections:	u32,
     timeout:		std::time::Duration,
+    no_rfc2374:		bool,
 }
 
 struct SpeedInfo<'a> {
@@ -196,6 +197,10 @@ struct CliOpts {
     #[clap(short('C'), long, value_parser, value_name("DIR"),
 	   help("directory used for cache files"))]
     cache_dir:		Option<String>,
+
+    #[clap(long, help("disable RFC 2373 (OACK) support; only useful for testing some clients"),
+	   group("test support"), value_parser)]
+    no_rfc2374:		bool,
 }
 
 fn main() {
@@ -228,6 +233,7 @@ fn main() {
 	max_window_size:	64,
 	max_connections:	args.max_connections,
 	timeout:		std::time::Duration::from_secs_f32(args.timeout),
+	no_rfc2374:		args.no_rfc2374,
     };
 
     let fd = match args.systemd {
