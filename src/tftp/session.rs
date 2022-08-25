@@ -172,7 +172,7 @@ impl <'a> Session<'a> {
 	Err(Error::NotImplemented)
     }
 
-    async fn run_oack(&mut self, mut oack: Oack, file_size: Option<u64>) -> Result<()>
+    async fn rrq_oack(&mut self, mut oack: Oack, file_size: Option<u64>) -> Result<()>
     {
 	oack.update_tsize(file_size);
 	oack.update_block_size(self.env.max_block_size,   |v| self.block_size = v);
@@ -233,7 +233,7 @@ impl <'a> Session<'a> {
 	}
 
 	if req.has_options() {
-	    self.run_oack(Oack::from_request(&req), fsize).await?;
+	    self.rrq_oack(Oack::from_request(&req), fsize).await?;
 	}
 
 	stats.window_size = self.window_size;
