@@ -5,7 +5,59 @@ r-tftpd is a tftp server with RFC 7440 "windowsize" support.
 It allows `RRQ` (read) requests; `WRQ` support is incomplete and
 exists only for testing purposes.
 
+# Implemented standards
+
+ - [RFC 1350 "THE TFTP PROTOCOL"](https://www.rfc-editor.org/rfc/rfc1350):
+
+   - `RRQ`: yes
+   - `WRQ`: only for testing purposes; e.g. accepts only the data but does not store it.  No window size support either
+   - supports only "octet" ("binary") transfer modes; "netascii" and "mail" are **not** supported
+   - block ids will wrap around from 65535 to 0
+
+ - [RFC 2347 "TFTP Option Extension"](https://www.rfc-editor.org/rfc/rfc2347.html):
+
+   - can be disabled (for testing purposes) by the `--no-rfc2374` flag
+
+ - [RFC 2348 "TFTP Blocksize Option"](https://datatracker.ietf.org/doc/html/rfc2348)
+
+ - [RFC 2349 "TFTP Timeout Interval and Transfer Size Options"](https://datatracker.ietf.org/doc/html/rfc2349)
+
+ - [RFC 7440 "TFTP Windowsize Option"](https://www.rfc-editor.org/rfc/rfc7440)
+   - only for `RRQ`, but **not** for `WRQ`
+
 # Usage
+
+```
+USAGE:
+    r-tftpd [OPTIONS]
+
+OPTIONS:
+    -C, --cache-dir <DIR>          directory used for cache files
+        --disable-proxy            disable proxy support
+    -f, --fallback <URI>           fallback uri
+    -h, --help                     Print help information
+    -l, --listen <IP>              ip address to listen on [default: ::]
+    -L, --log-format <FMT>         log format [default: default]
+    -m, --max-connections <NUM>    maximum number of connections [default: 64]
+        --no-rfc2374               disable RFC 2373 (OACK) support; only useful for testing some
+                                   clients
+    -p, --port <PORT>              port to listen on [default: 69]
+    -s, --systemd                  use systemd fd propagation
+    -t, --timeout <TIMEOUT>        timeout in seconds during tftp transfers [default: 3]
+    -V, --version                  Print version information
+        --wrq-devnull              accept WRQ but throw it away; only useful for testing some
+                                   clients
+```
+
+## build
+
+```
+make
+cargo build
+```
+
+see [r-tftp.spec](file://contrib/rust-r-tftpd.spec) for ways how to
+customize it by using makefile variables.
 
 ## standalone
 
@@ -21,14 +73,57 @@ Listening on privileged ports (e.g. the standard 69 one) requires the
 
 see contrib/
 
+# Proxy mode
 
-# TODO
+"r-tftpd" supports relaying of tftp requests to other servers.  It
+allows pseudo virtual hosting by creating (dead) symlinks pointing to
+an url.
 
-- implementation of transparent proxying of tftp requests:
+## supported uris
 
-  - when local file is missing a fallback uri (http(s)) will be tried
+- `http://` + `https://`
 
-  - pseudo virtual hosting: when a subdirectory is a symlink to an uri, file will be requested from there
+Schemes accept the following, "plus" sign separated modifiers:
+
+- `nocache`: downloaded resources will not be cached; by default usual
+  http caching mechanisms (`Cache-Control`, `Etag`, ...)  are applied
+  and resources are kept locally.  They are not accessible on disk but
+  created by `O_TMPFILE`.
+
+  The cache is cleared periodically
+
+-  `nocompress`: resources are requested with `identity` encoding; by
+  default, compression is enabled.  When compression is enabled, the
+  whole file must be downloaded when starting the transaction because
+  its size can not be determined else.
+
+  Without compression, `Content-Length` information are used and tftp
+  upload and http download happen in parallel, This helps to avoid
+  tftp timeouts
+
+## examples
+
+```
+$ tree
+.
+├── domain1 -> http+nocache://domain1.example.org/
+├── domain2 -> http+nocompress://domain2.example.org/
+├── existing
+├── remote-file -> http+nocompress+nocache://domain3.example.org/some-file
+└── subdir
+    └── file
+
+$ r-tftp --fallback http://fallback.example.org/
+```
+
+ | requested path | returned resource                                | flags                                |
+ |----------------|--------------------------------------------------|--------------------------------------|
+ | `existing`     | local `existing file`                            |                                      |
+ | `subdir/file`  | local `subdir/file`                              |                                      |
+ | `domain1/foo`  | remote `http://domain1.example.org/foo`          | without caching                      |
+ | `domain2/bar`  | remote `http://domain2.example.org/bar`          | without http compression             |
+ | `remote-file`  | remote `http://fallback.example.org/remote-file` | without http compression nor caching |
+ | `not-here`     | remote `http://fallback.example.org/not-here`    |                                      |
 
 # License
 

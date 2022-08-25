@@ -120,13 +120,14 @@ impl State {
 
     pub fn get_cache_info(&self) -> Option<&http::CacheInfo> {
 	match self {
-	    State::HaveMeta { cache_info, .. } |
-	    State::Downloading { cache_info, .. } |
-	    State::Complete { cache_info, .. }	=> Some(cache_info),
-	    State::Refresh { cache_info, .. }	=> Some(cache_info),
+	    Self::None |
+	    Self::Error(_) |
+	    Self::Init { .. }	=> None,
 
-	    Self::Error(hint)	=> panic!("get_file_size called in error state ({})", hint),
-	    _			=> None,
+	    Self::HaveMeta { cache_info, .. } |
+	    Self::Downloading { cache_info, .. } |
+	    Self::Complete { cache_info, .. } |
+	    Self::Refresh { cache_info, .. }	=> Some(cache_info),
 	}
     }
 
@@ -171,15 +172,9 @@ impl State {
     }
 
     pub fn is_outdated(&self, reftm: Time) -> bool {
-	match self {
-	    Self::None |
-	    Self::Error(_) |
-	    Self::Init { .. }	=> true,
-
-	    Self::HaveMeta { cache_info, .. } |
-	    Self::Downloading { cache_info, .. } |
-	    Self::Complete { cache_info, .. } |
-	    Self::Refresh { cache_info, .. }	=> cache_info.is_outdated(reftm),
+	match self.get_cache_info() {
+	    None	=> true,
+	    Some(info)	=> info.is_outdated(reftm),
 	}
     }
 }
@@ -235,6 +230,10 @@ impl EntryData {
 
     pub fn is_outdated(&self, reftm: Time) -> bool {
 	self.state.is_outdated(reftm)
+    }
+
+    pub fn get_cache_info(&self) -> Option<&http::CacheInfo> {
+	self.state.get_cache_info()
     }
 
     pub async fn fill_meta(&mut self) -> Result<()> {
@@ -471,6 +470,9 @@ struct CacheImpl {
     entries:	HashMap<url::Url, Entry>,
     client:	Arc<reqwest::Client>,
     is_dirty:	bool,
+    is_alive:	bool,
+
+    abort_ch:	Option<tokio::sync::watch::Sender<()>>,
 }
 
 pub enum LookupResult {
@@ -485,6 +487,8 @@ impl CacheImpl {
 	    entries:	HashMap::new(),
 	    client:	Arc::new(reqwest::Client::new()),
 	    is_dirty:	false,
+	    is_alive:	true,
+	    abort_ch:	None,
 	}
     }
 
@@ -516,17 +520,50 @@ impl CacheImpl {
 	self.entries.remove(key);
     }
 
-    pub fn run_gc(&mut self) {
-	if !self.is_dirty {
+    pub fn gc_oldest(&mut self, mut num: usize) {
+	if num == 0 {
 	    return;
 	}
 
-	self.is_dirty = false;
-
-	let mut outdated = Vec::new();
-	let now = Time::now();
+	let mut tmp = Vec::with_capacity(self.entries.len());
 
 	for (key, e) in &self.entries {
+	    let entry = match e.try_read() {
+		Ok(e)	=> e,
+		_	=> continue,
+	    };
+
+	    tmp.push((key.clone(), entry.get_cache_info().map(|c| c.localtm.mono)));
+	}
+
+	tmp.sort_by(|(_, tm_a), (_, tm_b)| tm_a.cmp(tm_b));
+
+	let mut rm_cnt = 0;
+
+	for (key, _) in tmp {
+	    if num == 0 {
+		break;
+	    }
+
+	    debug!("gc: removing old {}", key);
+	    self.entries.remove(&key);
+	    num -= 1;
+	    rm_cnt += 1;
+	}
+
+	if rm_cnt > 0 {
+	    info!("gc: removed {} old entries", rm_cnt);
+	}
+    }
+
+    pub fn gc_outdated(&mut self) -> usize {
+	let mut outdated = Vec::new();
+	let now = Time::now();
+	let mut cnt = 0;
+
+	for (key, e) in &self.entries {
+	    cnt += 1;
+
 	    let entry = match e.try_read() {
 		Ok(e)	=> e,
 		_	=> continue,
@@ -537,9 +574,62 @@ impl CacheImpl {
 	    }
 	}
 
+	let mut rm_cnt = 0;
+
 	for e in outdated {
-	    self.remove(&e);
+	    debug!("gc: removing outdated {}", e);
+	    self.entries.remove(&e);
+	    cnt -= 1;
+	    rm_cnt += 1;
 	}
+
+	if rm_cnt > 0 {
+	    info!("gc: removed {} obsolete entries", rm_cnt);
+	}
+
+	cnt
+    }
+
+    pub fn gc_run(&mut self, props: &GcProperties) {
+    }
+}
+
+#[derive(Debug)]
+pub struct GcProperties {
+    pub max_elements:	usize,
+    pub sleep:		std::time::Duration,
+}
+
+async fn gc_runner(props: GcProperties, mut abort_ch: tokio::sync::watch::Receiver<()>) {
+    loop {
+	use std::sync::TryLockError;
+
+	let sleep = {
+	    let cache = CACHE.try_write();
+
+	    match cache {
+		Ok(cache) if !cache.is_alive	=> break,
+		Ok(mut cache) if cache.is_dirty	=> {
+		    let cache_cnt = cache.gc_outdated();
+
+		    if cache_cnt > props.max_elements {
+			cache.gc_oldest(props.max_elements - cache_cnt)
+		    }
+
+		    cache.is_dirty = false;
+
+		    props.sleep
+		}
+		Ok(_)				=> props.sleep,
+		Err(TryLockError::WouldBlock)	=> std::time::Duration::from_secs(1),
+		Err(e)				=> {
+		    error!("cache gc failed with {:?}", e);
+		    break;
+		}
+	    }
+	};
+
+	let _ = tokio::time::timeout(sleep, abort_ch.changed()).await;
     }
 }
 
@@ -547,12 +637,29 @@ pub struct Cache();
 
 impl Cache {
     #[instrument(level = "trace")]
-    pub fn instanciate(tmpdir: &std::path::Path) {
+    pub fn instanciate(tmpdir: &std::path::Path, props: GcProperties) {
 	let mut cache = CACHE.write().unwrap();
 
 	trace!("tmpdir={:?}", tmpdir);
 
+	let (tx, rx) = tokio::sync::watch::channel(());
+
 	cache.tmpdir = tmpdir.into();
+	cache.abort_ch = Some(tx);
+
+	tokio::task::spawn(gc_runner(props, rx));
+    }
+
+    #[instrument(level = "trace")]
+    pub fn close() {
+	let mut cache = CACHE.write().unwrap();
+
+	cache.is_alive = false;
+
+	match &cache.abort_ch {
+	    Some(ch)	=> ch.send(()).unwrap_or(()),
+	    None	=> {},
+	};
     }
 
     #[instrument(level = "trace", ret)]
@@ -569,14 +676,14 @@ impl Cache {
 	cache.create(key)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace")]
     pub fn replace(key: &url::Url, entry: &Entry) {
 	let mut cache = CACHE.write().unwrap();
 
 	cache.replace(key, entry)
     }
 
-    #[instrument(level = "trace", ret)]
+    #[instrument(level = "trace")]
     pub fn remove(key: &url::Url) {
 	let mut cache = CACHE.write().unwrap();
 
