@@ -64,3 +64,10 @@ build:debug:
   variables:
     RUSTUP_CHAIN: nightly
     RUN_GRCOV: t
+
+build:noproxy:
+  extends: [ ".build" ]
+  variables:
+    RUSTUP_CHAIN: nightly
+    RUN_GRCOV: t
+    HAS_PROXY: n
