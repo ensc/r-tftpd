@@ -3,7 +3,7 @@ use lazy_static::__Deref;
 use std::time::Duration;
 use crate::{ Error, Result };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CacheControl {
     MaxAge(Duration),
     SMaxAge(Duration),
