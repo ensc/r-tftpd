@@ -224,11 +224,11 @@ struct CliOpts {
     cache_dir:		Option<String>,
 
     #[clap(long, help("disable RFC 2373 (OACK) support; only useful for testing some clients"),
-	   group("test support"), value_parser)]
+	   value_parser)]
     no_rfc2374:		bool,
 
     #[clap(long, help("accept WRQ but throw it away; only useful for testing some clients"),
-	   group("test support"), value_parser)]
+	   value_parser)]
     wrq_devnull:	bool,
 
     #[cfg(feature = "proxy")]
