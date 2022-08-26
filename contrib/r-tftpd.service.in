@@ -3,6 +3,7 @@ Description=r-tftpd Server
 Requires=r-tftpd.socket
 
 [Service]
+Environment=TMPDIR=/var/tmp
 Environment=RUST_LOG=info
 ExecStart=/usr/sbin/r-tftpd --systemd $TFTPD_OPTS
 WorkingDirectory=/var/lib/tftpboot
