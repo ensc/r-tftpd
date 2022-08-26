@@ -45,6 +45,25 @@ run_tftp_busybox() {
     busybox tftp -g -l output -r "$FILE" ${1:+-b $1} "$IP" "$PORT"
 }
 
+## curl
+_is_curl() {
+    type -p curl || return 1
+    curl --version | grep -q -i '^protocols:.*\<tftp\>' || return 1
+}
+
+run_curl() {
+    local uri
+
+    is curl || return 23
+
+    case $IP in
+      *:*)	uri="[$IP]:$PORT";;
+      *)	uri="$IP:$PORT";;
+    esac
+
+    curl --silent tftp://"$uri"/"$FILE" -o output "$@"
+}
+
 rm -f output
 test -w .
 
@@ -73,5 +92,21 @@ case $INSTANCE in
 	;;
 
   4)
+	## curl fails to download empty files
+	test "$FILE" != input_0 || exit 0
+
+	run_curl --tftp-blksize 50000
+	compare
+	;;
+
+  5)
+	## curl fails to download empty files
+	test "$FILE" != input_0 || exit 0
+
+	run_curl --tftp-no-options
+	compare
+	;;
+
+  6)
 	exit 42
 esac
