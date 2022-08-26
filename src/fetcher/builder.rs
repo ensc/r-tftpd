@@ -6,7 +6,7 @@ use std::path::{ PathBuf, Path };
 use super::Fetcher;
 
 lazy_static::lazy_static! {
-    static ref URI_REGEX: Regex = Regex::new(r"^[a-z]+(\+[a-z]+)?://").unwrap();
+    static ref URI_REGEX: Regex = Regex::new(r"^[a-z]+(\+[a-z]+)*://").unwrap();
 }
 
 pub struct Builder<'a> {
@@ -183,6 +183,7 @@ mod test {
 	symlink("http://test.example.com/bar/",         tmp_path.join("a/link-1")).unwrap();
 	symlink("https://test.example.com/foo",         tmp_path.join("a/link-2")).unwrap();
 	symlink("https+nocache://test.example.com/foo", tmp_path.join("a/link-3")).unwrap();
+	symlink("https+nocache+nocompress://test.example.com/foo", tmp_path.join("a/link-4")).unwrap();
 	symlink("./http://test.example.com/foo",        tmp_path.join("a/nolink-0")).unwrap();
 
 	let fb_none = None::<OsString>;
@@ -200,6 +201,8 @@ mod test {
 		       LookupResult::Uri("http://test.example.com/foo/test".parse().unwrap()));
 	    assert_eq!(lookup_path(tmp_path, "/a/link-3/test", fb_none.clone()).unwrap(),
 		       LookupResult::Uri("https+nocache://test.example.com/foo/test".parse().unwrap()));
+	    assert_eq!(lookup_path(tmp_path, "/a/link-4/test", fb_none.clone()).unwrap(),
+		       LookupResult::Uri("https+nocache+nocompress://test.example.com/foo/test".parse().unwrap()));
 	}
 
 	assert_eq!(lookup_path(tmp_path, "/a/nolink-0", fb_none.clone()).unwrap(),

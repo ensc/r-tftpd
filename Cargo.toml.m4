@@ -19,7 +19,7 @@ keywords = ["tftp", "rfc7440", "tftp-server"]
 [features]
 default = [ m4_ifdef(``CARGO_DEFAULT_FEATURES'',``CARGO_DEFAULT_FEATURES'') ]
 
-proxy = [ "reqwest", "tempfile", "httpdate", "futures-core", "bytes" ]
+proxy = [ "reqwest", "tempfile", "httpdate", "futures-core", "bytes", "bitflags" ]
 
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["rt", "time", "net", "macros"] }
@@ -39,6 +39,7 @@ tempfile = { version = "*", optional = true }
 httpdate = { version = "*", optional = true }
 futures-core = { version = "*", optional = true }
 bytes = { version = "*", optional = true }
+bitflags = { version = "*", optional = true }
 
 [dependencies.reqwest]
 version = "*"

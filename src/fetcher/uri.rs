@@ -11,6 +11,13 @@ pub struct Uri {
     is_eof:	bool,
 }
 
+bitflags::bitflags! {
+    struct Flags: u8 {
+	const NO_CACHE = 1;
+	const NO_COMPRESS = 2;
+    }
+}
+
 impl Uri {
     pub(crate) fn new(uri: &url::Url) -> Self {
 	Self {
@@ -22,8 +29,9 @@ impl Uri {
 	}
     }
 
-    async fn open_cached(&self, entry: &mut CacheEntryData) -> Result<()>
+    async fn open_cached(&self, entry: &mut CacheEntryData, flags: Flags) -> Result<()>
     {
+	use reqwest::header as H;
 	use reqwest::StatusCode as S;
 
 	if entry.is_running() {
@@ -32,9 +40,14 @@ impl Uri {
 
 	let client = Cache::get_client();
 
-	let req = entry
-	    .fill_request(client.get(entry.key.clone()))
-	    .build()?;
+	let mut req = entry
+	    .fill_request(client.get(entry.key.clone()));
+
+	if flags.contains(Flags::NO_COMPRESS) {
+	    req = req.header(H::ACCEPT_ENCODING, "identity");
+	}
+
+	let req = req.build()?;
 
 	entry.update_localtm();
 
@@ -58,57 +71,60 @@ impl Uri {
 	Ok(())
     }
 
-    fn get_uri(&self) -> (std::borrow::Cow<'_, url::Url>, bool) {
+    fn get_uri(&self) -> (std::borrow::Cow<'_, url::Url>, Flags) {
 	use std::borrow::Cow;
 
 	let mut res = Cow::Borrowed(&self.uri);
+	let mut flags = Flags::empty();
 
-	let (scheme,xtra) = {
-	    let mut i = self.uri.scheme().splitn(2, '+');
+	let (scheme, has_xtra) = {
+	    let mut i = self.uri.scheme().split('+');
 
-	    (i.next().unwrap(), i.next())
+	    let scheme = i.next().unwrap();
+	    let mut has_xtra = false;
+
+	    for x in i {
+		has_xtra = true;
+
+		match x {
+		    "nocache"		=> flags |= Flags::NO_CACHE,
+		    "nocompress"	=> flags |= Flags::NO_COMPRESS,
+		    s			=> warn!("unsupported scheme modifier {}", s),
+		}
+	    }
+
+	    (scheme, has_xtra)
 	};
 
-	error!("scheme={}, xtra={:?}", scheme, xtra);
+	if has_xtra {
+	    match res.to_mut().set_scheme(scheme) {
+		Ok(_)	=> { },
+		Err(_)	=> {
+		    // 'url' crate does not allow rewriting non-standard
+		    // 'http+nocached' to standard 'http' scheme
+		    let uri = scheme.to_string() + &res.as_str()[self.uri.scheme().len()..];
+		    let uri = url::Url::parse(&uri).unwrap();
 
-	match xtra {
-	    Some("nocache")	=> {
-		match res.to_mut().set_scheme(scheme) {
-		    Ok(_)	=> { },
-		    Err(_)	=> {
-			// 'url' crate does not allow rewriting non-standard
-			// 'http+nocached' to standard 'http' scheme
-			let uri = scheme.to_string() + &res.as_str()[self.uri.scheme().len()..];
-			let uri = url::Url::parse(&uri).unwrap();
-
-			res = Cow::Owned(uri);
-		    }
-		};
-
-		error!("{:?}", res);
-		(res, true)
-	    },
-
-	    Some(xtra)		=> {
-		warn!("unsupported xtra scheme param {}", xtra);
-		(res, false)
-	    },
-
-	    None		=> (res, false)
+		    res = Cow::Owned(uri);
+		}
+	    };
 	}
+
+	(res, flags)
     }
 
     pub async fn open(&mut self) -> Result<()>
     {
-	let entry = match self.get_uri() {
-	    (uri, false)	=> Cache::lookup_or_create(&uri),
-	    (uri, true)		=> Cache::create(&uri),
+	let (uri, flags) = self.get_uri();
+	let entry = match flags {
+	    f if f.contains(Flags::NO_CACHE)	=> Cache::create(&uri),
+	    _					=> Cache::lookup_or_create(&uri),
 	};
 
 	{
 	    let mut e_locked = entry.write().await;
 
-	    self.open_cached(&mut e_locked).await?;
+	    self.open_cached(&mut e_locked, flags).await?;
 	    self.size = Some(e_locked.get_filesize().await?);
 
 	    if e_locked.is_error() {
