@@ -8,8 +8,25 @@ use crate::util::{ SocketAddr, UdpSocket, ToFormatted };
 
 use super::{ Request, RequestError, Datagram, Oack, Xfer, SequenceId };
 
+#[derive(Copy, Clone, Default, Debug)]
+pub enum Direction {
+    Wrq,
+    #[default]
+    Rrq,
+}
+
+impl Direction {
+    pub fn as_arrow(&self) -> &'static str {
+	match self {
+	    Self::Wrq	=> "<=",
+	    Self::Rrq	=> "=>",
+	}
+    }
+}
+
 #[derive(Default, Debug)]
 pub struct Stats {
+    pub direction:	Direction,
     pub filesize:	u64,
     pub xmitsz:		u64,
     pub retries:	u32,
@@ -43,16 +60,31 @@ impl Stats {
 
 impl std::fmt::Display for Stats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-	write!(f, "\"{}\" ({} => {}, {}x {}) {} bytes", self.filename,
-	       self.local_ip, self.remote_ip,
-	       self.window_size, self.block_size,
-	       self.filesize.to_formatted())?;
+	write!(f, "\"{}\" ({} {} {}, {}x {})", self.filename,
+	       self.local_ip, self.direction.as_arrow(), self.remote_ip,
+	       self.window_size, self.block_size)?;
 
-	if self.has_errors() {
-            write!(f, ", sent={} ({} retries, {} blocks wasted, {} timeouts)",
-		   self.xmitsz.to_formatted(),
-		   self.retries, self.wastedsz.to_formatted(),
-		   self.num_timeouts)?
+	match self.direction {
+	    Direction::Rrq	=> {
+		write!(f, " {} bytes", self.filesize.to_formatted())?;
+
+		if self.has_errors() {
+		    write!(f, ", sent={} ({} retries, {} blocks wasted, {} timeouts)",
+			   self.xmitsz.to_formatted(),
+			   self.retries, self.wastedsz.to_formatted(),
+			   self.num_timeouts)?
+		}
+	    },
+
+	    Direction::Wrq	=> {
+		write!(f, " {} bytes", self.xmitsz.to_formatted())?;
+
+		if self.has_errors() {
+		    write!(f, " ({} retries, {} blocks wasted, {} timeouts)",
+			   self.retries, self.wastedsz.to_formatted(),
+			   self.num_timeouts)?
+		}
+	    }
 	}
 
 	Ok(())
@@ -193,6 +225,7 @@ impl <'a> Session<'a> {
 	self.log_request(&req, "write");
 
 	let mut stats = Stats {
+	    direction:	Direction::Wrq,
 	    filename:	req.get_filename().to_string_lossy().into_owned(),
 	    remote_ip:	self.remote.to_string(),
 	    local_ip:	self.sock.local_addr().unwrap().to_string(),
@@ -319,6 +352,7 @@ impl <'a> Session<'a> {
 	self.log_request(&req, "read");
 
 	let mut stats = Stats {
+	    direction:	Direction::Rrq,
 	    filename:	req.get_filename().to_string_lossy().into_owned(),
 	    remote_ip:	self.remote.to_string(),
 	    local_ip:	self.sock.local_addr().unwrap().to_string(),
