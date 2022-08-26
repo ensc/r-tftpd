@@ -31,6 +31,19 @@ pub struct Environment {
     timeout:		Duration,
     no_rfc2374:		bool,
     wrq_devnull:	bool,
+
+    #[cfg(feature = "proxy")]
+    allow_uri:		bool,
+}
+
+impl Environment {
+    pub fn allow_uri(&self) -> bool {
+	#[cfg(feature = "proxy")]
+	return self.allow_uri;
+
+        #[cfg(not(feature = "proxy"))]
+	false
+    }
 }
 
 struct SpeedInfo<'a> {
@@ -217,6 +230,10 @@ struct CliOpts {
     #[clap(long, help("accept WRQ but throw it away; only useful for testing some clients"),
 	   group("test support"), value_parser)]
     wrq_devnull:	bool,
+
+    #[cfg(feature = "proxy")]
+    #[clap(long, help("disable proxy support"), value_parser)]
+    disable_proxy:	bool,
 }
 
 fn main() {
@@ -254,6 +271,9 @@ fn main() {
 	timeout:		Duration::from_secs_f32(args.timeout),
 	no_rfc2374:		args.no_rfc2374,
 	wrq_devnull:		args.wrq_devnull,
+
+	#[cfg(feature = "proxy")]
+	allow_uri:		!args.disable_proxy,
     };
 
     let fd = match args.systemd {

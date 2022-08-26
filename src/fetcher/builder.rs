@@ -42,7 +42,7 @@ enum LookupResult {
 }
 
 //#[instrument(level = "trace", skip_all, ret)]
-fn lookup_path<A, B, C>(root: A, p: B, fallback: Option<C>) -> Result<LookupResult>
+fn lookup_path<A, B, C>(root: A, p: B, fallback: Option<C>, allow_uri: bool) -> Result<LookupResult>
 where
     A: AsRef<Path>,
     B: AsRef<Path>,
@@ -54,6 +54,9 @@ where
     let mut dir = root.as_ref().to_path_buf();
     let path_norm = normalize_path(p.as_ref())?;
     let mut is_dangling = false;
+
+    // avoid 'unused_variable' when proxy support is disabled
+    let _ = allow_uri;
 
     for c in path_norm.components() {
 	uri = match uri {
@@ -115,13 +118,12 @@ where
     }
 
     match uri.map(|u| u.to_str().map(|u| u.parse::<url::Url>())) {
-	None			=> Ok(LookupResult::Path(dir)),
-	Some(None)		=> Err(Error::StringConversion),
-	Some(Some(Err(_)))	=> Err(Error::UriParse),
+	None				=> Ok(LookupResult::Path(dir)),
+	Some(None)			=> Err(Error::StringConversion),
+	Some(Some(Err(_)))		=> Err(Error::UriParse),
 	#[cfg(feature = "proxy")]
-	Some(Some(Ok(u)))	=> Ok(LookupResult::Uri(u)),
-	#[cfg(not(feature = "proxy"))]
-	Some(Some(Ok(_)))	=> Err(Error::NotImplemented),
+	Some(Some(Ok(u))) if allow_uri	=> Ok(LookupResult::Uri(u)),
+	Some(Some(Ok(_)))		=> Err(Error::NotImplemented),
     }
 }
 
@@ -134,7 +136,7 @@ impl <'a> Builder<'a> {
 
     #[instrument(level = "trace", skip(self), ret)]
     pub fn instanciate(&'a self, p: &std::path::Path) -> Result<super::Fetcher> {
-	match lookup_path(&self.env.dir, p, self.env.fallback_uri.as_ref())? {
+	match lookup_path(&self.env.dir, p, self.env.fallback_uri.as_ref(), self.env.allow_uri())? {
 	    LookupResult::Path(p)	=> Ok(Fetcher::new_file(&p)),
 	    #[cfg(feature = "proxy")]
 	    LookupResult::Uri(uri)	=> Ok(Fetcher::new_uri(&uri)),
@@ -190,24 +192,24 @@ mod test {
 	let _fb_some = Some::<OsString>("http://fb.example.com/redir/".into());
 
 
-	assert_eq!(lookup_path(tmp_path, "/b/foo", fb_none.clone()).unwrap(),
+	assert_eq!(lookup_path(tmp_path, "/b/foo", fb_none.clone(), true).unwrap(),
 		   LookupResult::Path(tmp_path.join("b/foo")));
 
 	#[cfg(feature = "proxy")]
 	{
-	    assert_eq!(lookup_path(tmp_path, "/a/link-0", fb_none.clone()).unwrap(),
+	    assert_eq!(lookup_path(tmp_path, "/a/link-0", fb_none.clone(), true).unwrap(),
 		       LookupResult::Uri("http://test.example.com/foo".parse().unwrap()));
-	    assert_eq!(lookup_path(tmp_path, "/a/link-0/test", fb_none.clone()).unwrap(),
+	    assert_eq!(lookup_path(tmp_path, "/a/link-0/test", fb_none.clone(), true).unwrap(),
 		       LookupResult::Uri("http://test.example.com/foo/test".parse().unwrap()));
-	    assert_eq!(lookup_path(tmp_path, "/a/link-3/test", fb_none.clone()).unwrap(),
+	    assert_eq!(lookup_path(tmp_path, "/a/link-3/test", fb_none.clone(), true).unwrap(),
 		       LookupResult::Uri("https+nocache://test.example.com/foo/test".parse().unwrap()));
-	    assert_eq!(lookup_path(tmp_path, "/a/link-4/test", fb_none.clone()).unwrap(),
+	    assert_eq!(lookup_path(tmp_path, "/a/link-4/test", fb_none.clone(), true).unwrap(),
 		       LookupResult::Uri("https+nocache+nocompress://test.example.com/foo/test".parse().unwrap()));
 	}
 
-	assert_eq!(lookup_path(tmp_path, "/a/nolink-0", fb_none.clone()).unwrap(),
+	assert_eq!(lookup_path(tmp_path, "/a/nolink-0", fb_none.clone(), true).unwrap(),
 		   LookupResult::Path(tmp_path.join("a/nolink-0")));
-	assert_eq!(lookup_path(tmp_path, "/a/nolink-0/file", fb_none.clone()).unwrap(),
+	assert_eq!(lookup_path(tmp_path, "/a/nolink-0/file", fb_none.clone(), true).unwrap(),
 		   LookupResult::Path(tmp_path.join("a/nolink-0/file")));
     }
 }
