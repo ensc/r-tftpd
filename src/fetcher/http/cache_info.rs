@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use super::{Time, HttpHeader};
 
 use crate::{ Result, Error };
@@ -16,7 +18,6 @@ pub struct CacheInfo {
 impl CacheInfo {
     pub fn new(localtm: Time, hdrs: &reqwest::header::HeaderMap) -> Result<Self>
     {
-	use std::time::Duration;
 	use reqwest::header as H;
 	use super::CacheControlIterator as I;
 	use super::CacheControl as C;
@@ -85,8 +86,8 @@ impl CacheInfo {
 	})
     }
 
-    pub fn is_outdated(&self, reftm: Time) -> bool {
+    pub fn is_outdated(&self, reftm: Time, max_lt: Duration) -> bool {
 	self.not_after.map(|t| t < reftm).unwrap_or(false) ||
-	    reftm.checked_duration_since(self.localtm).map(|d| d > MAX_LIFETIME).unwrap_or(false)
+	    reftm.checked_duration_since(self.localtm).map(|d| d > max_lt).unwrap_or(false)
     }
 }

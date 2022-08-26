@@ -11,6 +11,7 @@ pub mod util;
 pub mod fetcher;
 
 use std::{sync::Arc, os::unix::prelude::RawFd};
+use std::time::Duration;
 use util::{ UdpSocket, UdpRecvInfo, SocketAddr, Bucket, ToFormatted };
 
 use tftp::{ Session, SessionStats };
@@ -136,7 +137,16 @@ enum Either<T: Sized, U: Sized> {
 
 async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
     #[cfg(feature = "proxy")]
-    fetcher::Cache::instanciate(&env.cache_dir);
+    {
+	let gc_props = fetcher::CacheGcProperties {
+	    max_elements:	50,
+	    max_lifetime:	Duration::from_secs(1 * 3600),
+	    sleep:		Duration::from_secs(30),
+	};
+
+	fetcher::Cache::instanciate(&env.cache_dir, gc_props);
+    }
+
 
     // UdpSocket creation must happen with active Tokio runtime
     let mut sock = match info {

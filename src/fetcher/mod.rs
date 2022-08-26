@@ -21,6 +21,7 @@ use uri::Uri;
 mod cache;
 #[cfg(feature = "proxy")]
 pub use cache::{ Cache,
+		 GcProperties as CacheGcProperties,
 		 Entry as CacheEntry,
 		 LookupResult as CacheLookupResult,
 		 EntryData as CacheEntryData };

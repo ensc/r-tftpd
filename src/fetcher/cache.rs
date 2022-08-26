@@ -171,10 +171,10 @@ impl State {
 	}.map(|sz| Some(sz as usize))
     }
 
-    pub fn is_outdated(&self, reftm: Time) -> bool {
+    pub fn is_outdated(&self, reftm: Time, max_lt: Duration) -> bool {
 	match self.get_cache_info() {
 	    None	=> true,
-	    Some(info)	=> info.is_outdated(reftm),
+	    Some(info)	=> info.is_outdated(reftm, max_lt),
 	}
     }
 }
@@ -228,8 +228,8 @@ impl EntryData {
 	}
     }
 
-    pub fn is_outdated(&self, reftm: Time) -> bool {
-	self.state.is_outdated(reftm)
+    pub fn is_outdated(&self, reftm: Time, max_lt: Duration) -> bool {
+	self.state.is_outdated(reftm, max_lt)
     }
 
     pub fn get_cache_info(&self) -> Option<&http::CacheInfo> {
@@ -556,7 +556,7 @@ impl CacheImpl {
 	}
     }
 
-    pub fn gc_outdated(&mut self) -> usize {
+    pub fn gc_outdated(&mut self, max_lt: Duration) -> usize {
 	let mut outdated = Vec::new();
 	let now = Time::now();
 	let mut cnt = 0;
@@ -569,7 +569,7 @@ impl CacheImpl {
 		_	=> continue,
 	    };
 
-	    if entry.is_outdated(now) {
+	    if entry.is_outdated(now, max_lt) {
 		outdated.push(key.clone());
 	    }
 	}
@@ -589,15 +589,13 @@ impl CacheImpl {
 
 	cnt
     }
-
-    pub fn gc_run(&mut self, props: &GcProperties) {
-    }
 }
 
 #[derive(Debug)]
 pub struct GcProperties {
     pub max_elements:	usize,
-    pub sleep:		std::time::Duration,
+    pub max_lifetime:	Duration,
+    pub sleep:		Duration,
 }
 
 async fn gc_runner(props: GcProperties, mut abort_ch: tokio::sync::watch::Receiver<()>) {
@@ -610,7 +608,7 @@ async fn gc_runner(props: GcProperties, mut abort_ch: tokio::sync::watch::Receiv
 	    match cache {
 		Ok(cache) if !cache.is_alive	=> break,
 		Ok(mut cache) if cache.is_dirty	=> {
-		    let cache_cnt = cache.gc_outdated();
+		    let cache_cnt = cache.gc_outdated(props.max_lifetime);
 
 		    if cache_cnt > props.max_elements {
 			cache.gc_oldest(props.max_elements - cache_cnt)

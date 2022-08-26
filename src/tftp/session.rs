@@ -105,6 +105,7 @@ impl <'a> Session<'a> {
     {
 	match msg {
 	    Datagram::Data(seq, data)	=> {
+		#[allow(clippy::uninit_assumed_init)]
 		let mut hdr: [u8; 4] = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
 
 		hdr[0..2].copy_from_slice(&[0, 3]);	    // DATA
@@ -158,6 +159,7 @@ impl <'a> Session<'a> {
 
     async fn send_ack(&self, id: SequenceId) -> Result<()>
     {
+	#[allow(clippy::identity_op)]
 	let msg: [u8; 4] = [ 0, 4,
 			     ((id.as_u16() >> 8) & 0xff) as u8,
 			     ((id.as_u16() >> 0) & 0xff) as u8 ];
@@ -190,11 +192,12 @@ impl <'a> Session<'a> {
     {
 	self.log_request(&req, "write");
 
-	let mut stats = Stats::default();
-
-	stats.filename = req.get_filename().to_string_lossy().into_owned();
-	stats.remote_ip = self.remote.to_string();
-	stats.local_ip = self.sock.local_addr().unwrap().to_string();
+	let mut stats = Stats {
+	    filename:	req.get_filename().to_string_lossy().into_owned(),
+	    remote_ip:	self.remote.to_string(),
+	    local_ip:	self.sock.local_addr().unwrap().to_string(),
+	    ..Default::default()
+	};
 
 	if !self.env.no_rfc2374 && req.has_options() {
 	    self.wrq_oack(Oack::from_request(&req)).await?;
@@ -208,6 +211,8 @@ impl <'a> Session<'a> {
 	let alloc_len = 4 + self.block_size as usize;
 	let mut buf = Vec::<u8>::with_capacity(alloc_len);
 	let mut seq = SequenceId::new(1);
+	let mut last_id = None;
+	let mut retry_cnt = RETRY_CNT;
 
 	#[allow(clippy::uninit_vec)]
 	unsafe { buf.set_len(alloc_len) };
@@ -223,6 +228,8 @@ impl <'a> Session<'a> {
 		Ok(Datagram::Data(id, data))		=> {
 		    debug!("got DATA #{} with len {}; throwing it away...", id.as_u16(), data.len());
 		    self.send_ack(id).await?;
+		    last_id = Some(id);
+		    retry_cnt = RETRY_CNT;
 		    seq += 1;
 
 		    stats.xmitsz += data.len() as u64;
@@ -237,6 +244,13 @@ impl <'a> Session<'a> {
 		    info!("remote site sent error #{} ({})", code, String::from_utf8_lossy(info));
 		    break;
 		}
+
+		Err(Error::Timeout) if last_id.is_some() && retry_cnt > 0	=> {
+		    debug!("timeout while waiting for DATA; retrying...");
+		    self.send_ack(*last_id.as_ref().unwrap()).await?;
+		    retry_cnt -= 1;
+		    stats.retries += 1;
+		},
 
 		Err(Error::Timeout)			=> {
 		    warn!("timeout while waiting for DATA");
@@ -304,12 +318,14 @@ impl <'a> Session<'a> {
 
 	self.log_request(&req, "read");
 
-	let mut stats = Stats::default();
-	let mut fetcher = Builder::new(self.env).instanciate(&req.get_filename())?;
+	let mut stats = Stats {
+	    filename:	req.get_filename().to_string_lossy().into_owned(),
+	    remote_ip:	self.remote.to_string(),
+	    local_ip:	self.sock.local_addr().unwrap().to_string(),
+	    ..Default::default()
+	};
 
-	stats.filename = req.get_filename().to_string_lossy().into_owned();
-	stats.remote_ip = self.remote.to_string();
-	stats.local_ip = self.sock.local_addr().unwrap().to_string();
+	let mut fetcher = Builder::new(self.env).instanciate(&req.get_filename())?;
 
 	if let Err(e) = fetcher.open().await {
 	    self.send_err(e.clone()).await?;
