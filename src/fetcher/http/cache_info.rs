@@ -4,8 +4,6 @@ use super::{Time, HttpHeader};
 
 use crate::{ Result, Error };
 
-const MAX_LIFETIME: std::time::Duration = std::time::Duration::from_secs(1 * 3600); // 1 hour
-
 #[derive(Debug)]
 pub struct CacheInfo {
     pub not_after:	Option<Time>,

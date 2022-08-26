@@ -40,7 +40,6 @@ const FILES: &[FileSpec] = &[
 async fn run_test(ip: std::net::IpAddr)
 {
     use tokio::time::timeout;
-    use std::time::Duration;
     use tokio::process::Command;
     use tempfile::TempDir;
     use std::process::{Stdio};
@@ -111,6 +110,9 @@ async fn run_test(ip: std::net::IpAddr)
 
 	instance += 1
     }
+
+    #[cfg(feature = "proxy")]
+    crate::fetcher::Cache::close();
 
     h_server.await
 	.expect("tftp server timed out")

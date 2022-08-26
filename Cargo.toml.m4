@@ -50,6 +50,7 @@ features = ["default-tls", "gzip", "brotli", "deflate", "socks"]
 [dev-dependencies]
 rand = { version = "*", features = ["min_const_gen"] }
 tokio = { version = "1", default-features = false, features = ["rt", "time", "net", "macros", "process"] }
+tempfile = { version = "*" }
 
 [profile.release]
 lto = true

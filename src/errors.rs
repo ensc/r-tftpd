@@ -19,6 +19,7 @@ pub enum Error {
     #[error("http error: {0}")]
     HttpErrorStr(String),
 
+    #[cfg(feature = "proxy")]
     #[error("request failed with status {0}")]
     HttpStatus(reqwest::StatusCode),
 
@@ -61,10 +62,8 @@ impl Clone for Error {
         match self {
             Self::Io(e) => Self::Io(e.kind().into()),
             Self::Nix(arg0) => Self::Nix(*arg0),
-            Self::HttpError(arg0) => Self::HttpErrorStr(format!("{}", arg0)),
             Self::HttpErrorStr(arg0) => Self::HttpErrorStr(arg0.clone()),
             Self::RequestError(arg0) => Self::RequestError(arg0.clone()),
-	    Self::HttpStatus(s) => Self::HttpStatus(*s),
             Self::InvalidPathName => Self::InvalidPathName,
             Self::StringConversion => Self::StringConversion,
             Self::BadHttpTime => Self::BadHttpTime,
@@ -76,6 +75,11 @@ impl Clone for Error {
             Self::Protocol(arg0) => Self::Protocol(arg0),
             Self::NotImplemented => Self::NotImplemented,
             Self::TooMuchClients => Self::TooMuchClients,
+
+	    #[cfg(feature = "proxy")]
+            Self::HttpError(arg0) => Self::HttpErrorStr(format!("{}", arg0)),
+	    #[cfg(feature = "proxy")]
+	    Self::HttpStatus(s) => Self::HttpStatus(*s),
         }
     }
 }

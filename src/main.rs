@@ -28,13 +28,13 @@ pub struct Environment {
     max_block_size:	u16,
     max_window_size:	u16,
     max_connections:	u32,
-    timeout:		std::time::Duration,
+    timeout:		Duration,
     no_rfc2374:		bool,
     wrq_devnull:	bool,
 }
 
 struct SpeedInfo<'a> {
-    duration:		std::time::Duration,
+    duration:		Duration,
     stats:		&'a SessionStats,
 }
 
@@ -138,6 +138,7 @@ enum Either<T: Sized, U: Sized> {
 async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
     #[cfg(feature = "proxy")]
     {
+	#[allow(clippy::identity_op)]
 	let gc_props = fetcher::CacheGcProperties {
 	    max_elements:	50,
 	    max_lifetime:	Duration::from_secs(1 * 3600),
@@ -250,7 +251,7 @@ fn main() {
 	max_block_size:		1500,
 	max_window_size:	64,
 	max_connections:	args.max_connections,
-	timeout:		std::time::Duration::from_secs_f32(args.timeout),
+	timeout:		Duration::from_secs_f32(args.timeout),
 	no_rfc2374:		args.no_rfc2374,
 	wrq_devnull:		args.wrq_devnull,
     };

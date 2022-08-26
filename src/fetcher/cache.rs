@@ -471,6 +471,7 @@ struct CacheImpl {
     client:	Arc<reqwest::Client>,
     is_dirty:	bool,
     is_alive:	bool,
+    refcnt:	u32,
 
     abort_ch:	Option<tokio::sync::watch::Sender<()>>,
 }
@@ -489,6 +490,7 @@ impl CacheImpl {
 	    is_dirty:	false,
 	    is_alive:	true,
 	    abort_ch:	None,
+	    refcnt:	0,
 	}
     }
 
@@ -638,26 +640,33 @@ impl Cache {
     pub fn instanciate(tmpdir: &std::path::Path, props: GcProperties) {
 	let mut cache = CACHE.write().unwrap();
 
-	trace!("tmpdir={:?}", tmpdir);
+	cache.refcnt += 1;
 
-	let (tx, rx) = tokio::sync::watch::channel(());
+	if cache.refcnt == 1 {
+	    let (tx, rx) = tokio::sync::watch::channel(());
 
-	cache.tmpdir = tmpdir.into();
-	cache.abort_ch = Some(tx);
+	    cache.tmpdir = tmpdir.into();
+	    cache.abort_ch = Some(tx);
 
-	tokio::task::spawn(gc_runner(props, rx));
+	    tokio::task::spawn(gc_runner(props, rx));
+	}
     }
 
     #[instrument(level = "trace")]
     pub fn close() {
 	let mut cache = CACHE.write().unwrap();
 
-	cache.is_alive = false;
+	assert!(cache.refcnt > 0);
 
-	match &cache.abort_ch {
-	    Some(ch)	=> ch.send(()).unwrap_or(()),
-	    None	=> {},
-	};
+	cache.refcnt -= 1;
+	if cache.refcnt == 0 {
+	    cache.is_alive = false;
+
+	    match &cache.abort_ch {
+		Some(ch)	=> ch.send(()).unwrap_or(()),
+		None	=> {},
+	    };
+	}
     }
 
     #[instrument(level = "trace", ret)]
