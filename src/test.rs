@@ -114,21 +114,28 @@ async fn run_test(ip: std::net::IpAddr)
 	instance += 1
     }
 
-    #[cfg(feature = "proxy")]
-    crate::fetcher::Cache::close();
-
     h_server.await
 	.expect("tftp server timed out")
 	.expect("tftp server failed")
 	.unwrap();
+
+    #[cfg(feature = "proxy")]
+    crate::fetcher::Cache::close().await;
 }
+
+// switching tokio runtime between tests breaks the Cache singleton
+static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 #[tokio::test]
 async fn test_ipv4() {
+    let _g = TEST_LOCK.lock().unwrap();
+
     run_test(std::net::Ipv4Addr::LOCALHOST.into()).await;
 }
 
 #[tokio::test]
 async fn test_ipv6() {
+    let _g = TEST_LOCK.lock().unwrap();
+
     run_test(std::net::Ipv6Addr::LOCALHOST.into()).await;
 }

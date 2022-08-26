@@ -470,10 +470,10 @@ struct CacheImpl {
     entries:	HashMap<url::Url, Entry>,
     client:	Arc<reqwest::Client>,
     is_dirty:	bool,
-    is_alive:	bool,
     refcnt:	u32,
 
     abort_ch:	Option<tokio::sync::watch::Sender<()>>,
+    gc:		Option<tokio::task::JoinHandle<()>>,
 }
 
 pub enum LookupResult {
@@ -488,9 +488,9 @@ impl CacheImpl {
 	    entries:	HashMap::new(),
 	    client:	Arc::new(reqwest::Client::new()),
 	    is_dirty:	false,
-	    is_alive:	true,
 	    abort_ch:	None,
 	    refcnt:	0,
+	    gc:		None,
 	}
     }
 
@@ -608,7 +608,6 @@ async fn gc_runner(props: GcProperties, mut abort_ch: tokio::sync::watch::Receiv
 	    let cache = CACHE.try_write();
 
 	    match cache {
-		Ok(cache) if !cache.is_alive	=> break,
 		Ok(mut cache) if cache.is_dirty	=> {
 		    let cache_cnt = cache.gc_outdated(props.max_lifetime);
 
@@ -629,7 +628,10 @@ async fn gc_runner(props: GcProperties, mut abort_ch: tokio::sync::watch::Receiv
 	    }
 	};
 
-	let _ = tokio::time::timeout(sleep, abort_ch.changed()).await;
+	if tokio::time::timeout(sleep, abort_ch.changed()).await.is_ok() {
+	    debug!("cache gc runner gracefully closed");
+	    break;
+	}
     }
 }
 
@@ -640,32 +642,31 @@ impl Cache {
     pub fn instanciate(tmpdir: &std::path::Path, props: GcProperties) {
 	let mut cache = CACHE.write().unwrap();
 
-	cache.refcnt += 1;
-
-	if cache.refcnt == 1 {
+	if cache.refcnt == 0 {
 	    let (tx, rx) = tokio::sync::watch::channel(());
 
 	    cache.tmpdir = tmpdir.into();
 	    cache.abort_ch = Some(tx);
 
-	    tokio::task::spawn(gc_runner(props, rx));
+	    cache.gc = Some(tokio::task::spawn(gc_runner(props, rx)));
 	}
+
+	cache.refcnt += 1;
     }
 
     #[instrument(level = "trace")]
-    pub fn close() {
+    pub async fn close() {
 	let mut cache = CACHE.write().unwrap();
 
 	assert!(cache.refcnt > 0);
 
 	cache.refcnt -= 1;
-	if cache.refcnt == 0 {
-	    cache.is_alive = false;
 
-	    match &cache.abort_ch {
-		Some(ch)	=> ch.send(()).unwrap_or(()),
-		None	=> {},
-	    };
+	if cache.refcnt == 0 {
+	    cache.entries.clear();
+
+	    cache.abort_ch.take().unwrap().send(()).unwrap();
+	    cache.gc.take().unwrap().await.unwrap();
 	}
     }
 
