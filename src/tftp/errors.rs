@@ -22,6 +22,8 @@ pub enum RequestError {
     WriteUnsupported,
     #[error("operation not supported")]
     OperationUnsupported,
+    #[error("transfer mode not supported; only 'octet' is supported")]
+    ModeUnsupported,
     #[error("malformed ACK")]
     MalformedAck,
 }

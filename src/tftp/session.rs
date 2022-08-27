@@ -460,6 +460,12 @@ impl <'a> Session<'a> {
 	let op = Datagram::try_from(req.as_slice());
 
 	match op {
+	    Ok(Datagram::Write(r)) |
+	    Ok(Datagram::Read(r)) if !r.mode.is_octet()		=> {
+		self.send_err(RequestError::ModeUnsupported.into()).await?;
+		Err(RequestError::ModeUnsupported.into())
+	    },
+
 	    Ok(Datagram::Write(r)) if self.env.wrq_devnull	=> self.run_wrq_devnull(r).await,
 	    Ok(Datagram::Write(r))				=> self.run_wrq(r).await,
 	    Ok(Datagram::Read(r))				=> self.run_rrq(r).await,

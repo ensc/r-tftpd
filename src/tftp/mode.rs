@@ -22,3 +22,9 @@ impl TryFrom<&[u8]> for Mode {
 	}
     }
 }
+
+impl Mode {
+    pub fn is_octet(&self) -> bool {
+	*self == Self::Octet
+    }
+}
