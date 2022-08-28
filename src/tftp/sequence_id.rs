@@ -9,6 +9,12 @@ impl std::fmt::Display for SequenceId {
     }
 }
 
+impl std::fmt::Debug for SequenceId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	self.0.fmt(f)
+    }
+}
+
 impl SequenceId {
     pub fn new(v: u16) -> Self {
 	Self(v)
@@ -33,16 +39,6 @@ impl SequenceId {
     pub fn as_slice(self) -> [u8;2] {
 	[(self.0 >> 8) as u8, (self.0 & 0xff) as u8]
     }
-
-    #[cfg(test)]
-    #[allow(clippy::nonminimal_bool)]
-    pub fn in_range(self, a: Self, b: Self) -> bool
-    {
-	assert!(a.0 != b.0);
-
-	(a.0 < self.0 && self.0 < b.0) ||
-	    (self.0 < b.0 && b.0 < a.0)
-    }
 }
 
 impl std::ops::AddAssign<u16> for SequenceId {
@@ -66,8 +62,28 @@ impl std::ops::Add<u16> for SequenceId {
     }
 }
 
-impl std::fmt::Debug for SequenceId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-	self.0.fmt(f)
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn delta(a: u16, b: u16) -> u16 {
+	use SequenceId as Id;
+
+	Id::new(a).delta(Id::new(b))
+    }
+
+    #[test]
+    fn test_seqid() {
+	use SequenceId as Id;
+
+	assert_eq!(delta(    1,     0),     1);
+	assert_eq!(delta(    0,     0),     0);
+	assert_eq!(delta(    0,     1), 65535);
+	assert_eq!(delta(    1, 65535),     2);
+	assert_eq!(delta(65535,     1), 65534);
+
+	assert_eq!(Id::new(    0).add(Id::new(1)),     Id::new(    1));
+	assert_eq!(Id::new(65535).add(Id::new(1)),     Id::new(    0));
+	assert_eq!(Id::new(65535).add(Id::new(65535)), Id::new(65534));
     }
 }
