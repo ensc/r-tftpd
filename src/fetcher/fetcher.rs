@@ -38,7 +38,7 @@ impl Fetcher {
 	    Self::File(f)	=> f.open(),
 	    Self::Memory(m)	=> m.open(),
 	    #[cfg(feature = "proxy")]
-	    Self::Uri(u)	=> u.open().await,
+	    Self::Uri(u)	=> Ok(u.open().await?),
 	}
     }
 
@@ -59,7 +59,7 @@ impl Fetcher {
 	    Self::File(f)	=> f.read(buf).await,
 	    Self::Memory(m)	=> m.read(buf).await,
 	    #[cfg(feature = "proxy")]
-	    Self::Uri(u)	=> u.read(buf).await,
+	    Self::Uri(u)	=> Ok(u.read(buf).await?),
 	}
     }
 

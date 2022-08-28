@@ -19,7 +19,7 @@ bitflags::bitflags! {
 }
 
 impl Uri {
-    pub(crate) fn new(uri: &url::Url) -> Self {
+    pub fn new(uri: &url::Url) -> Self {
 	Self {
 	    uri:	uri.clone(),
 	    size:	None,

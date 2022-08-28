@@ -8,23 +8,12 @@ pub enum Error {
     #[error(transparent)]
     Nix(#[from] nix::Error),
 
+    #[cfg(feature = "proxy")]
+    #[error(transparent)]
+    Proxy(#[from] r_tftpd_proxy::Error),
+
     #[error(transparent)]
     RequestError(#[from] crate::tftp::RequestError),
-
-    #[cfg(feature = "proxy")]
-    #[error(transparent)]
-    HttpError(#[from] reqwest::Error),
-
-    // helper because reqwest::Error does not implement Clone
-    #[error("http error: {0}")]
-    HttpErrorStr(String),
-
-    #[cfg(feature = "proxy")]
-    #[error("request failed with status {0}")]
-    HttpStatus(reqwest::StatusCode),
-
-    #[error("bad http time")]
-    BadHttpTime,
 
     #[error("invalid pathname")]
     InvalidPathName,
@@ -62,11 +51,8 @@ impl Clone for Error {
         match self {
             Self::Io(e) => Self::Io(e.kind().into()),
             Self::Nix(arg0) => Self::Nix(*arg0),
-            Self::HttpErrorStr(arg0) => Self::HttpErrorStr(arg0.clone()),
             Self::RequestError(arg0) => Self::RequestError(arg0.clone()),
             Self::InvalidPathName => Self::InvalidPathName,
-            Self::StringConversion => Self::StringConversion,
-            Self::BadHttpTime => Self::BadHttpTime,
             Self::UriParse => Self::UriParse,
             Self::FileMissing => Self::FileMissing,
             Self::Internal(arg0) => Self::Internal(arg0),
@@ -75,11 +61,10 @@ impl Clone for Error {
             Self::Protocol(arg0) => Self::Protocol(arg0),
             Self::NotImplemented => Self::NotImplemented,
             Self::TooMuchClients => Self::TooMuchClients,
+            Self::StringConversion => Self::StringConversion,
 
 	    #[cfg(feature = "proxy")]
-            Self::HttpError(arg0) => Self::HttpErrorStr(format!("{}", arg0)),
-	    #[cfg(feature = "proxy")]
-	    Self::HttpStatus(s) => Self::HttpStatus(*s),
+            Self::Proxy(arg0) => Self::Proxy(arg0.clone()),
         }
     }
 }

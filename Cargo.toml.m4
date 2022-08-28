@@ -15,11 +15,14 @@ repository = "https://gitlab-ext.sigma-chemnitz.de/ensc/r-tftpd"
 keywords = ["tftp", "rfc7440", "tftp-server"]
 
 [workspace]
+members = [
+	"mod-proxy",
+]
 
 [features]
 default = [ m4_ifdef(``CARGO_DEFAULT_FEATURES'',``CARGO_DEFAULT_FEATURES'') ]
 
-proxy = [ "reqwest", "tempfile", "httpdate", "futures-core", "bytes", "bitflags" ]
+proxy = [ "r-tftpd-proxy" ]
 
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["rt", "time", "net", "macros"] }
@@ -35,17 +38,7 @@ nix = { version = "*", default-features = false, features = ["socket", "uio", "n
 clap = { version = "*", features = ["derive", "color", "std"] }
 num-format = { version = "*", features = ["with-system-locale"] }
 
-tempfile = { version = "*", optional = true }
-httpdate = { version = "*", optional = true }
-futures-core = { version = "*", optional = true }
-bytes = { version = "*", optional = true }
-bitflags = { version = "*", optional = true }
-
-[dependencies.reqwest]
-version = "*"
-optional = true
-default-features = false
-features = ["default-tls", "gzip", "brotli", "deflate", "socks"]
+r-tftpd-proxy = { version = "*", path = "mod-proxy", optional = true }
 
 [dev-dependencies]
 rand = { version = "*", features = ["min_const_gen"] }

@@ -8,25 +8,12 @@ mod memory;
 
 
 pub use builder::Builder;
+pub use fetcher::Fetcher;
 
 use file::File;
 use memory::Memory;
 
 #[cfg(feature = "proxy")]
-mod uri;
+use r_tftpd_proxy::*;
 #[cfg(feature = "proxy")]
-use uri::Uri;
-
-#[cfg(feature = "proxy")]
-mod cache;
-#[cfg(feature = "proxy")]
-pub use cache::{ Cache,
-		 GcProperties as CacheGcProperties,
-		 Entry as CacheEntry,
-		 LookupResult as CacheLookupResult,
-		 EntryData as CacheEntryData };
-
-#[cfg(feature = "proxy")]
-mod http;
-
-pub use fetcher::Fetcher;
+pub use r_tftpd_proxy::{ Cache, CacheGcProperties };
