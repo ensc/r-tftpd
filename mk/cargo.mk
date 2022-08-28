@@ -123,5 +123,5 @@ cargo-run:	FORCE
 
 cargo-version-info:	FORCE
 	@echo "============ CARGO ============"
-	@$(call __cargo_op,,tree --workspace --depth 1)
+	@$(call __cargo_op,,tree --workspace)
 	@echo
