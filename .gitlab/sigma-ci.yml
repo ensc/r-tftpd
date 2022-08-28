@@ -47,12 +47,23 @@ workflow:
     - _make run-grcov || ':'
     - lcov --summary coverage.lcov || ':'
 
+    - b=i/usr/local/sbin/r-tftpd
+
+    - ls -l "$b"
+    - printf 'binary-size-unstripped %s' "`stat -c %s $b`" > metrics.txt
+
+    - strip "$b"
+
+    - ls -l "$b"
+    - printf 'binary-size-stripped %s' "`stat -c %s $b`" >> metrics.txt
+
   artifacts:
     when: always
     reports:
       coverage_report:
         coverage_format: cobertura
         path: coverage.cobertura
+      metrics: metrics.txt
 
 build:release:
   extends: [ ".build" ]
