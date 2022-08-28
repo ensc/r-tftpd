@@ -22,6 +22,12 @@ pub const SEQUENCE_SIZE: u32 = 65536;
 #[derive(Copy, Clone, Default, PartialEq, Eq)]
 pub struct SequenceId(u16);
 
+impl std::fmt::Display for SequenceId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "#{}", self.0)
+    }
+}
+
 impl SequenceId {
     pub fn new(v: u16) -> Self {
 	Self(v)

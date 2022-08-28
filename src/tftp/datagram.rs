@@ -20,8 +20,8 @@ impl std::fmt::Display for Datagram<'_> {
         match self {
 	    Self::Read(r)	=> write!(f, "RRQ({:?})", r),
 	    Self::Write(r)	=> write!(f, "WRQ({:?})", r),
-	    Self::Data(id, d)	=> write!(f, "DATA(#{}, ..{})", id.as_u16(), d.len()),
-	    Self::Ack(id)	=> write!(f, "ACK(#{}", id.as_u16()),
+	    Self::Data(id, d)	=> write!(f, "DATA({}, ..{})", id, d.len()),
+	    Self::Ack(id)	=> write!(f, "ACK({}", id),
 	    Self::Error(err, s)	=> write!(f, "ERROR({}, \"{}\")", err, String::from_utf8_lossy(s)),
 	    Self::OAck		=> write!(f, "OACK"),
 	}

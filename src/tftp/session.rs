@@ -255,11 +255,11 @@ impl <'a> Session<'a> {
 
 	    match resp {
 		Ok(Datagram::Data(id, ..)) if id != seq	=> {
-		    debug!("got DATA with wrong id #{}...", id.as_u16());
+		    debug!("got DATA with wrong id {}...", id);
 		},
 
 		Ok(Datagram::Data(id, data))		=> {
-		    debug!("got DATA #{} with len {}; throwing it away...", id.as_u16(), data.len());
+		    debug!("got DATA {} with len {}; throwing it away...", id, data.len());
 		    self.send_ack(id).await?;
 		    last_id = Some(id);
 		    retry_cnt = RETRY_CNT;
@@ -325,7 +325,7 @@ impl <'a> Session<'a> {
 	match resp {
 	    Datagram::Ack(id) if id.as_u16() == 0	=> {},
 	    Datagram::Ack(id)	=> {
-		warn!("ACK of OACK with invalid id {}", id.as_u16());
+		warn!("ACK of OACK with invalid id {}", id);
 		return Err(Error::BadAck);
 	    }
 	    r			=> {
@@ -415,13 +415,13 @@ impl <'a> Session<'a> {
 
 	    match resp {
 		Err(Error::Timeout) if retry > 0    => {
-		    debug!("timeout; resending seq {}", seq.as_u16());
+		    debug!("timeout; resending seq {}", seq);
 		    retry -= 1;
 		    stats.num_timeouts += 1;
 		},
 
 		Ok(Datagram::Ack(id))	=> {
-		    debug!("got ACK #{}", id.as_u16());
+		    debug!("got ACK {}", id);
 		    is_startup = false;
 		    retry = RETRY_CNT;
 		    seq = id + 1
