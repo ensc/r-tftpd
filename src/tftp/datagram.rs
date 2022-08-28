@@ -67,14 +67,19 @@ impl <'a> TryFrom<&'a[u8]> for Datagram<'a> {
 	let op = v.get_u16(0);
 
 	Ok(match op {
+	    // RRQ
 	    1	=> {
 		v.assert_len(2 + 1)?;
 		Datagram::Read(Request::from_slice(&v[2..], Dir::Read)?)
 	    },
+
+	    // WRQ
 	    2	=> {
 		v.assert_len(2 + 1)?;
 		Datagram::Write(Request::from_slice(&v[2..], Dir::Write)?)
 	    },
+
+	    // DATA
 	    3	=> {
 		v.assert_len(2 + 2)?;
 		Datagram::Data(v.get_sequence_id(2), &v[4..])
@@ -91,6 +96,7 @@ impl <'a> TryFrom<&'a[u8]> for Datagram<'a> {
 	    },
 	    5	=> Err(E::MissingZero)?,
 
+	    // OACK (received on client side only)
 	    6	=> Datagram::OAck,
 	    _	=> Err(E::BadOpCode(op))?,
 	})
