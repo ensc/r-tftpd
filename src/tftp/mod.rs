@@ -3,6 +3,7 @@ mod datagram;
 mod mode;
 mod errors;
 mod session;
+mod session_stats;
 mod oack;
 mod xfer;
 mod sequence_id;
@@ -15,5 +16,6 @@ use xfer::Xfer;
 
 pub use errors::{ RequestError, RequestResult };
 pub use session::Session;
-pub use session::Stats as SessionStats;
+pub use session_stats::{ Stats as SessionStats,
+			 Direction as SessionDirection };
 pub use sequence_id::SequenceId;
