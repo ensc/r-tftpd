@@ -20,7 +20,7 @@ workflow:
     CARGO_HOME: $CI_PROJECT_DIR/.home/cargo
     RUSTUP_HOME: $CI_PROJECT_DIR/.home/rustup
     CARGO_TARGET_DIR: $CI_PROJECT_DIR/.home/target
-    CARGO_BUILD_FLAGS: '--all-targets --tests --benches'
+    CARGO_BUILD_FLAGS: '--all-targets --tests --benches --workspace'
     RUSTUP_CHAIN: stable
     _CARGO: "cargo +$RUSTUP_CHAIN"
 
