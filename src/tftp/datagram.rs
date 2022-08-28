@@ -4,7 +4,6 @@ use crate::{ Error, Result };
 use crate::util::{ UdpSocket, SocketAddr };
 use super::{ Request, RequestError as E, RequestResult, SequenceId };
 
-
 #[derive(Debug)]
 pub enum Datagram<'a> {
     Read(Request<'a>),

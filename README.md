@@ -12,7 +12,7 @@ exists only for testing purposes.
 
    - `RRQ`: yes
    - `WRQ`: only for testing purposes; e.g. accepts only the data but does not store it.  No window size support either
-   - supports only "octet" ("binary") transfer modes; "netascii" and "mail" are **not** supported
+   - implements only the "octet" ("binary") transfer mode; "netascii" and "mail" are **not** supported
    - block ids will wrap around from 65535 to 0
 
  - [RFC 2347 "TFTP Option Extension"](https://www.rfc-editor.org/rfc/rfc2347.html):

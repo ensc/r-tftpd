@@ -24,7 +24,6 @@ impl <'a> Session<'a> {
 		     remote: SocketAddr,
 		     local: std::net::IpAddr) -> Result<Session<'a>> {
 	let local_addr = SocketAddr::new(local, 0);
-
 	let sock = UdpSocket::bind(local_addr)?;
 
 	tracing::Span::current().record("remote", &remote.to_string());
@@ -55,11 +54,7 @@ impl <'a> Session<'a> {
     {
 	match msg {
 	    Datagram::Data(seq, data)	=> {
-		#[allow(clippy::uninit_assumed_init)]
-		let mut hdr: [u8; 4] = unsafe { std::mem::MaybeUninit::uninit().assume_init() };
-
-		hdr[0..2].copy_from_slice(&[0, 3]);	    // DATA
-		hdr[2..4].copy_from_slice(&seq.as_slice()); // sequence
+		let hdr: [u8; 4] = [ 0, 3, seq.as_u8_hi(), seq.as_u8_lo() ];
 
 		let data = &[
 		    IoSlice::new(&hdr),
@@ -97,6 +92,7 @@ impl <'a> Session<'a> {
 		msg.extend(b"too much clients");
 		msg.push(0);
 	    },
+
 	    _				=> {
 		msg.extend([0, 0]);
 	    },
@@ -109,10 +105,7 @@ impl <'a> Session<'a> {
 
     async fn send_ack(&self, id: SequenceId) -> Result<()>
     {
-	#[allow(clippy::identity_op)]
-	let msg: [u8; 4] = [ 0, 4,
-			     ((id.as_u16() >> 8) & 0xff) as u8,
-			     ((id.as_u16() >> 0) & 0xff) as u8 ];
+	let msg: [u8; 4] = [ 0, 4, id.as_u8_hi(), id.as_u8_lo() ];
 
 	self.send(&msg).await
     }
@@ -126,9 +119,17 @@ impl <'a> Session<'a> {
 	self.send(&msg).await
     }
 
+    fn log_request(&self, req: &Request<'_>, op: &'static str)
+    {
+	tracing::Span::current().record("op", &op.to_string());
+	tracing::Span::current().record("filename", &req.get_filename().to_string_lossy().into_owned());
+
+	debug!("request={:?}", req);
+    }
+
     async fn wrq_oack(&mut self, mut oack: Oack) -> Result<()>
     {
-	oack.update_block_size(self.env.max_block_size,   |v| self.block_size = v);
+	oack.update_block_size(self.env.max_block_size, |v| self.block_size = v);
 	// TODO: only window size of 1 is supported
 	oack.update_window_size(1, |v| self.window_size = v);
 	oack.update_timeout(|v| self.timeout = v);
@@ -159,6 +160,7 @@ impl <'a> Session<'a> {
 	stats.window_size = self.window_size;
 	stats.block_size  = self.block_size;
 
+	// extra space of 4 for cmd-code and sequence-id
 	let alloc_len = 4 + self.block_size as usize;
 	let mut buf = Vec::<u8>::with_capacity(alloc_len);
 	let mut seq = SequenceId::new(1);
@@ -253,14 +255,6 @@ impl <'a> Session<'a> {
 	};
 
 	Ok(())
-    }
-
-    fn log_request(&self, req: &Request<'_>, op: &'static str)
-    {
-	tracing::Span::current().record("op", &op.to_string());
-	tracing::Span::current().record("filename", &req.get_filename().to_string_lossy().into_owned());
-
-	debug!("request={:?}", req);
     }
 
     async fn run_rrq(mut self, req: Request<'_>) -> Result<Stats>

@@ -39,6 +39,18 @@ impl SequenceId {
     pub fn as_slice(self) -> [u8;2] {
 	[(self.0 >> 8) as u8, (self.0 & 0xff) as u8]
     }
+
+    #[inline]
+    pub fn as_u8_hi(self) -> u8 {
+	((self.0 >> 8) & 0xff) as u8
+
+    }
+
+    #[allow(clippy::identity_op)]
+    #[inline]
+    pub fn as_u8_lo(self) -> u8 {
+	((self.0 >> 0) & 0xff) as u8
+    }
 }
 
 impl std::ops::AddAssign<u16> for SequenceId {
@@ -85,5 +97,11 @@ mod test {
 	assert_eq!(Id::new(    0).add(Id::new(1)),     Id::new(    1));
 	assert_eq!(Id::new(65535).add(Id::new(1)),     Id::new(    0));
 	assert_eq!(Id::new(65535).add(Id::new(65535)), Id::new(65534));
+
+	assert_eq!(Id::new(0x01fe).as_u8_lo(), 0xfe);
+	assert_eq!(Id::new(0x0102).as_u8_hi(), 0x01);
+
+	assert_eq!(Id::new(0xfd03).as_u8_lo(), 0x03);
+	assert_eq!(Id::new(0xfd03).as_u8_hi(), 0xfd);
     }
 }

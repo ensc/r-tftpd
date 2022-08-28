@@ -4,9 +4,17 @@ use super::Request;
 
 pub struct Oack {
     pub block_size:	Option<u16>,
-    pub timeout:	Option<std::time::Duration>,
+    pub timeout:	Option<Duration>,
     pub window_size:	Option<u16>,
     pub tsize:		Option<u64>,
+}
+
+fn append_option<V: Into<u64>>(msg: &mut Vec<u8>, id: &[u8], value: V)
+{
+    msg.extend(id);
+    msg.push(0);
+    msg.extend(value.into().to_string().as_bytes());
+    msg.push(0);
 }
 
 impl Oack {
@@ -58,32 +66,13 @@ impl Oack {
 	}
     }
 
-    fn append_option<V: Into<u64>>(msg: &mut Vec<u8>, id: &[u8], value: V)
-    {
-	msg.extend(id);
-	msg.push(0);
-	msg.extend(value.into().to_string().as_bytes());
-	msg.push(0);
-    }
-
     pub fn fill_buf(self, msg: &mut Vec::<u8>)
     {
 	msg.extend([0, 6]);
 
-	if let Some(sz) = self.block_size {
-	    Self::append_option(msg, b"blksize", sz);
-	}
-
-	if let Some(sz) = self.window_size {
-	    Self::append_option(msg, b"windowsize", sz);
-	}
-
-	if let Some(sz) = self.tsize {
-	    Self::append_option(msg, b"tsize", sz);
-	}
-
-	if let Some(to) = self.timeout {
-	    Self::append_option(msg, b"timeout", to.as_secs());
-	}
+	self.block_size.map(|sz|  append_option(msg, b"blksize", sz));
+	self.window_size.map(|sz| append_option(msg, b"windowsize", sz));
+	self.tsize.map(|sz|       append_option(msg, b"tsize", sz));
+	self.timeout.map(|to|     append_option(msg, b"timeout", to.as_secs()));
     }
 }

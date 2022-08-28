@@ -174,10 +174,9 @@ impl <'a> Xfer<'a> {
 
     fn free_blocks(&mut self, blk_id: SequenceId) -> Result<()>
     {
-	let delta = if self.active_sz == 0 {
-	    0_u16
-	} else {
-	    blk_id.delta(self.start.seq)
+	let delta = match self.active_sz {
+	    0	=> 0_u16,
+	    _	=> blk_id.delta(self.start.seq)
 	};
 
 	#[allow(clippy::comparison_chain)]

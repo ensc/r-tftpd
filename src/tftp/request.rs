@@ -90,7 +90,7 @@ impl <'a> Request<'a> {
 		b"timeout"	=> res.timeout = Some(Duration::from_secs(try_ranged_from::<u64, 0, 65536>(arg)?)),
 		b"tsize"	=> res.tsize = Some(match dir {
 		    Dir::Read	=> try_ranged_from::<u64, 0, 0>(arg),
-		    Dir::Write	=> try_ranged_from::<u64, 0, 4294967295>(arg),
+		    Dir::Write	=> try_ranged_from::<u64, 0, 4_294_967_295>(arg),
 		}?),
 		b"windowsize"	=> res.window_size = Some(try_ranged_from::<u16, 1, 65535>(arg)?),
 		_		=> warn!("unsupported {:?}={:?} option", name, arg),
