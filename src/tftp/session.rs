@@ -334,6 +334,12 @@ impl <'a> Session<'a> {
 
 		Ok(Datagram::Ack(id))	=> {
 		    debug!("got ACK {}", id);
+
+		    if is_startup && id.as_u16() < self.window_size {
+			info!("first window truncated; you might want to reduce window size to {} or less",
+			      id.as_u16());
+		    }
+
 		    is_startup = false;
 		    retry = RETRY_CNT;
 		    seq = id + 1
