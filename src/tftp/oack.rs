@@ -66,6 +66,7 @@ impl Oack {
 	}
     }
 
+    #[allow(clippy::option_map_unit_fn)]
     pub fn fill_buf(self, msg: &mut Vec::<u8>)
     {
 	msg.extend([0, 6]);

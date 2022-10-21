@@ -168,7 +168,7 @@ impl State {
 		Err(Error::Internal("file out-of-bound read")),
 
 	    _	=> return Ok(None)
-	}.map(|sz| Some(sz as usize))
+	}.map(Some)
     }
 
     pub fn is_outdated(&self, reftm: Time, max_lt: Duration) -> bool {
