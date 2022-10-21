@@ -29,25 +29,22 @@ exists only for testing purposes.
 # Usage
 
 ```
-USAGE:
-    r-tftpd [OPTIONS]
+Usage: r-tftpd [OPTIONS]
 
-OPTIONS:
-    -C, --cache-dir <DIR>          directory used for cache files
-        --disable-proxy            disable proxy support
-    -f, --fallback <URI>           fallback uri
-    -h, --help                     Print help information
-    -l, --listen <IP>              ip address to listen on [default: ::]
-    -L, --log-format <FMT>         log format [default: default]
-    -m, --max-connections <NUM>    maximum number of connections [default: 64]
-        --no-rfc2374               disable RFC 2373 (OACK) support; only useful for testing some
-                                   clients
-    -p, --port <PORT>              port to listen on [default: 69]
-    -s, --systemd                  use systemd fd propagation
-    -t, --timeout <TIMEOUT>        timeout in seconds during tftp transfers [default: 3]
-    -V, --version                  Print version information
-        --wrq-devnull              accept WRQ but throw it away; only useful for testing some
-                                   clients
+Options:
+  -s, --systemd                use systemd fd propagation
+  -p, --port <PORT>            port to listen on [default: 69]
+  -l, --listen <IP>            ip address to listen on [default: ::]
+  -m, --max-connections <NUM>  maximum number of connections [default: 64]
+  -t, --timeout <TIMEOUT>      timeout in seconds during tftp transfers [default: 3]
+  -f, --fallback <URI>         fallback uri
+  -L, --log-format <FMT>       log format [default: default] [possible values: default, compact, full, json]
+  -C, --cache-dir <DIR>        directory used for cache files
+      --no-rfc2374             disable RFC 2373 (OACK) support; only useful for testing some clients
+      --wrq-devnull            accept WRQ but throw it away; only useful for testing some clients
+      --disable-proxy          disable proxy support
+  -h, --help                   Print help information
+  -V, --version                Print version information
 ```
 
 ## build
