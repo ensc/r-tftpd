@@ -181,14 +181,13 @@ async fn tokio_main(env: Environment, info: Either<SocketAddr, RawFd>) -> Result
 
 use clap::Parser;
 
-clap::arg_enum! {
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    enum LogFormat {
-	Default,
-	Compact,
-	Full,
-	Json,
-    }
+#[derive(clap::ValueEnum)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LogFormat {
+    Default,
+    Compact,
+    Full,
+    Json,
 }
 
 #[derive(clap::Parser, Debug)]
