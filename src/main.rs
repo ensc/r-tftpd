@@ -164,7 +164,7 @@ async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
 
     // UdpSocket creation must happen with active Tokio runtime
     let mut sock = match info {
-	Either::A(addr)	=> UdpSocket::bind(addr),
+	Either::A(addr)	=> UdpSocket::bind(&addr),
 	Either::B(fd)	=> UdpSocket::from_raw(fd),
     }?;
 

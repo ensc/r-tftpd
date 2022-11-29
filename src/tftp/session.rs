@@ -24,7 +24,7 @@ impl <'a> Session<'a> {
 		     remote: SocketAddr,
 		     local: std::net::IpAddr) -> Result<Session<'a>> {
 	let local_addr = SocketAddr::new(local, 0);
-	let sock = UdpSocket::bind(local_addr)?;
+	let sock = UdpSocket::bind(&local_addr)?;
 
 	tracing::Span::current().record("remote", &remote.to_string());
 	tracing::Span::current().record("local",  &sock.local_addr().unwrap().to_string());
@@ -42,12 +42,12 @@ impl <'a> Session<'a> {
 
     async fn send(&self, msg: &[u8]) -> Result<()>
     {
-	self.sock.sendto(msg, self.remote).await
+	self.sock.sendto(msg, &self.remote).await
     }
 
     async fn send_slice(&self, data: &[IoSlice<'_>]) -> Result<()>
     {
-	self.sock.sendmsg(data, self.remote).await
+	self.sock.sendmsg(data, &self.remote).await
     }
 
     async fn send_datagram(&self, msg: Datagram<'_>) -> Result<()>

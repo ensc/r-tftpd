@@ -102,7 +102,7 @@ impl UdpSocket {
 	self.async_fd.as_ref().unwrap()
     }
 
-    pub async fn sendto(&self, buf: &[u8], addr: SocketAddr) -> Result<()>
+    pub async fn sendto(&self, buf: &[u8], addr: &SocketAddr) -> Result<()>
     {
 	use socket::MsgFlags as M;
 	use nix::Error as E;
@@ -135,7 +135,7 @@ impl UdpSocket {
 	}
     }
 
-    pub async fn sendmsg(&self, iov: &[IoSlice<'_>], addr: SocketAddr) -> Result<()>
+    pub async fn sendmsg(&self, iov: &[IoSlice<'_>], addr: &SocketAddr) -> Result<()>
     {
 	use socket::MsgFlags as M;
 	use nix::Error as E;
@@ -253,7 +253,7 @@ impl UdpSocket {
 	res.try_into()
     }
 
-    pub fn bind(addr: SocketAddr) -> Result<Self> {
+    pub fn bind(addr: &SocketAddr) -> Result<Self> {
 	let fd = unsafe { addr.socket() }?;
 
 	let af = addr.get_af();
