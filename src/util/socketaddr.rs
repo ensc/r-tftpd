@@ -1,12 +1,12 @@
 use std::net::{ IpAddr };
 use std::os::unix::prelude::RawFd;
 
-use nix::sys::socket::{self, SockaddrLike, SockaddrStorage};
+use nix::sys::socket::{self, SockaddrStorage};
 
 use crate::{ Result, Error };
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct SocketAddr(std::net::SocketAddr);
+#[derive(Clone, Debug)]
+pub struct SocketAddr(SockaddrStorage);
 
 impl std::fmt::Display for SocketAddr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -14,28 +14,32 @@ impl std::fmt::Display for SocketAddr {
     }
 }
 
+impl PartialEq for SocketAddr {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 impl TryFrom<SockaddrStorage> for SocketAddr {
     type Error = Error;
 
     fn try_from(addr: SockaddrStorage) -> std::result::Result<Self, Self::Error> {
-	if let Some(ip) = addr.as_sockaddr_in() {
-	    use std::net::SocketAddrV4 as V4;
+	use socket::SockaddrLike;
+	use socket::AddressFamily as AF;
 
-	    Ok(Self(V4::new(ip.ip().into(), ip.port()).into()))
-	} else if let Some(ip) = addr.as_sockaddr_in6() {
-	    use std::net::SocketAddrV6 as V6;
-
-	    Ok(Self(V6::new(ip.ip(), ip.port(),
-			    ip.flowinfo(), ip.scope_id()).into()))
-	} else {
-	    Err(crate::Error::Internal("unsupported address type"))
+	match addr.family() {
+	    Some(AF::Inet) |
+	    Some(AF::Inet6)	=> Ok(Self(addr)),
+	    _			=> Err(crate::Error::Internal("unsupported address type"))
 	}
     }
 }
 
 impl SocketAddr {
     pub fn new(ip: IpAddr, port: u16) -> Self {
-	Self(std::net::SocketAddr::new(ip, port))
+	let addr = std::net::SocketAddr::new(ip, port);
+
+	Self(addr.into())
     }
 
     pub fn from_raw_fd(fd: RawFd) -> Result<Self>
@@ -43,6 +47,20 @@ impl SocketAddr {
 	socket::getsockname::<SockaddrStorage>(fd)
 	    .map_err(|e| e.into())
 	    .and_then(Self::try_from)
+    }
+
+    pub fn to_stdnet(&self) -> std::net::SocketAddr {
+	if let Some(ip) = self.0.as_sockaddr_in() {
+	    use std::net::SocketAddrV4 as V4;
+
+	    V4::new(ip.ip().into(), ip.port()).into()
+	} else if let Some(ip) = self.0.as_sockaddr_in6() {
+	    use std::net::SocketAddrV6 as V6;
+
+	    V6::new(ip.ip(), ip.port(), ip.flowinfo(), ip.scope_id()).into()
+	} else {
+	    panic!("addr {:?} is not ipv4 or ipv6", self.0);
+	}
     }
 
     /// # Safety
@@ -57,27 +75,13 @@ impl SocketAddr {
     }
 
     pub fn get_af(&self) -> socket::AddressFamily {
-	use std::net::SocketAddr as SA;
-	use socket::AddressFamily as AF;
+	use socket::SockaddrLike;
 
-	match self.0 {
-	    SA::V4(_)	=> AF::Inet,
-	    SA::V6(_)	=> AF::Inet6,
-	}
+	self.0.family().unwrap()
     }
 
-    pub fn as_std(&self) -> &std::net::SocketAddr
+    pub fn as_nix(&self) -> &SockaddrStorage
     {
 	&self.0
-    }
-
-    pub fn as_nix(&self) -> Box<dyn SockaddrLike + Send>
-    {
-	use std::net::SocketAddr as SA;
-
-	match self.0 {
-	    SA::V4(a)	=> Box::new(socket::SockaddrIn::from(a)),
-	    SA::V6(a)	=> Box::new(socket::SockaddrIn6::from(a)),
-	}
     }
 }

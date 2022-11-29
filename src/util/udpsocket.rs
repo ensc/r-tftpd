@@ -3,16 +3,11 @@ use std::io::IoSlice;
 use std::os::unix::io::RawFd;
 use std::net::IpAddr;
 use std::os::unix::prelude::AsRawFd;
-use nix::sys::socket::{self, SockaddrLike, SockaddrStorage};
+use nix::sys::socket::{self, SockaddrStorage};
 use tokio::io::unix::AsyncFd;
 use nix::libc;
 
 use super::SocketAddr;
-
-fn sockaddrlike_to_storage(addr: &dyn SockaddrLike) -> SockaddrStorage
-{
-    unsafe { SockaddrStorage::from_raw(addr.as_ptr(), Some(addr.len())) }.unwrap()
-}
 
 trait OptUnwrap<T: Sized> {
     fn unwrap_opt(self) -> Result<T>;
@@ -58,7 +53,6 @@ impl RecvInfoOpt {
     }
 }
 
-#[derive(Clone, Copy)]
 pub struct RecvInfo {
     pub size:	usize,
     if_idx:	libc::c_int,
@@ -107,12 +101,10 @@ impl UdpSocket {
 	use socket::MsgFlags as M;
 	use nix::Error as E;
 
-	let addr = addr.as_nix();
-
 	loop {
 	    let mut async_guard = self.get_fd().writable().await?;
 
-	    match self.sendto_sync(buf, &*addr, M::MSG_NOSIGNAL | M::MSG_DONTWAIT) {
+	    match self.sendto_sync(buf, addr, M::MSG_NOSIGNAL | M::MSG_DONTWAIT) {
 		Ok(_)			=> break Ok(()),
 		Err(E::EAGAIN)		=> async_guard.clear_ready(),
 		Err(e)			=> break Err(e.into())
@@ -120,12 +112,12 @@ impl UdpSocket {
 	}
     }
 
-    fn sendto_sync(&self, buf: &[u8], addr: &dyn SockaddrLike,
+    fn sendto_sync(&self, buf: &[u8], addr: &SocketAddr,
 		   flags: socket::MsgFlags) -> nix::Result<()>
     {
 	use nix::Error as E;
 
-	match socket::sendto(self.fd, buf, addr, flags) {
+	match socket::sendto(self.fd, buf, addr.as_nix(), flags) {
 	    Ok(sz) if sz == buf.len()	=> Ok(()),
 	    Ok(sz)			=> {
 		error!("sent only {} bytes out of {} ones", sz, buf.len());
@@ -140,12 +132,10 @@ impl UdpSocket {
 	use socket::MsgFlags as M;
 	use nix::Error as E;
 
-	let addr = addr.as_nix();
-
 	loop {
 	    let mut async_guard = self.get_fd().writable().await?;
 
-	    match self.sendmsg_sync(iov, &*addr, M::MSG_NOSIGNAL | M::MSG_DONTWAIT) {
+	    match self.sendmsg_sync(iov, addr, M::MSG_NOSIGNAL | M::MSG_DONTWAIT) {
 		Ok(_)			=> break Ok(()),
 		Err(E::EAGAIN)		=> async_guard.clear_ready(),
 		Err(e)			=> break Err(e.into())
@@ -153,18 +143,14 @@ impl UdpSocket {
 	}
     }
 
-    fn sendmsg_sync(&self, iov: &[IoSlice<'_>], addr: &dyn SockaddrLike,
+    fn sendmsg_sync(&self, iov: &[IoSlice<'_>], addr: &SocketAddr,
 		    flags: socket::MsgFlags) -> nix::Result<()>
     {
 	use nix::Error as E;
 
 	let total_sz: usize = iov.iter().map(|v| v.len()).sum();
 
-	// TODO: this is too expensive but nix api makes it difficulty/impossible
-	// to use the `dyn SockaddrLike` object directly
-	let addr = sockaddrlike_to_storage(addr);
-
-	match socket::sendmsg(self.fd, iov, &[], flags, Some(&addr)) {
+	match socket::sendmsg(self.fd, iov, &[], flags, Some(addr.as_nix())) {
 	    Ok(sz) if sz == total_sz	=> Ok(()),
 	    Ok(sz)			=> {
 		error!("sent only {} bytes out of {} ones", sz, total_sz);
@@ -257,9 +243,8 @@ impl UdpSocket {
 	let fd = unsafe { addr.socket() }?;
 
 	let af = addr.get_af();
-	let addr = addr.as_nix();
 
-	match socket::bind(fd, &*addr) {
+	match socket::bind(fd, addr.as_nix()) {
 	    Ok(_)	=> Ok(Self {
 		fd:		fd,
 		af:		af,
