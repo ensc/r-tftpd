@@ -13,8 +13,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    ## rust 1.62 is tested because it is the version in RHEL 8; it
-    ## requires extra setup
+    ## rust 1.62 is tested because it is the version in RHEL 8; but
+    ## tests requires more recent features so that they are not run
+    ## for this version
     strategy:
       matrix:
         toolchain: [ "stable", "nightly", "1.62" ]
@@ -32,16 +33,13 @@ jobs:
     - name: Prepare
       run: make prepare
 
-    - name: Make rust 'nightly'
-      if: ${{ matrix.toolchain }} == '1.62'
-      run: export RUSTC_BOOTSTRAP=1
-
     - name: Run build
       uses: actions-rs/cargo@v1
       with:
         command: build
 
     - name: Run tests
+      if: ${{ matrix.toolchain }} != '1.62'
       uses: actions-rs/cargo@v1
       with:
         command: test
