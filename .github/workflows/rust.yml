@@ -1,0 +1,41 @@
+name: Generic build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        toolchain: [ "stable", "nightly", "1.62" ]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: ${{ matrix.toolchain }}
+        override: true
+
+    - name: Prepare
+      run: make prepare
+
+    - name: Run build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+
+    - name: Run tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
