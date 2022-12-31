@@ -17,10 +17,10 @@ pub enum Datagram<'a> {
 impl std::fmt::Display for Datagram<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-	    Self::Read(r)	=> write!(f, "RRQ({:?})", r),
-	    Self::Write(r)	=> write!(f, "WRQ({:?})", r),
+	    Self::Read(r)	=> write!(f, "RRQ({r:?})"),
+	    Self::Write(r)	=> write!(f, "WRQ({r:?})"),
 	    Self::Data(id, d)	=> write!(f, "DATA({}, ..{})", id, d.len()),
-	    Self::Ack(id)	=> write!(f, "ACK({}", id),
+	    Self::Ack(id)	=> write!(f, "ACK({id}"),
 	    Self::Error(err, s)	=> write!(f, "ERROR({}, \"{}\")", err, String::from_utf8_lossy(s)),
 	    Self::OAck		=> write!(f, "OACK"),
 	}

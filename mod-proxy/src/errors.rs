@@ -35,7 +35,7 @@ impl Clone for Error {
         match self {
             Self::Io(e) => Self::Io(e.kind().into()),
             Self::Nix(arg0) => Self::Nix(*arg0),
-            Self::HttpError(arg0) => Self::HttpErrorStr(format!("{}", arg0)),
+            Self::HttpError(arg0) => Self::HttpErrorStr(format!("{arg0}")),
             Self::HttpErrorStr(arg0) => Self::HttpErrorStr(arg0.clone()),
 	    Self::HttpStatus(s) => Self::HttpStatus(*s),
             Self::BadHttpTime => Self::BadHttpTime,

@@ -26,8 +26,8 @@ impl <'a> Session<'a> {
 	let local_addr = SocketAddr::new(local, 0);
 	let sock = UdpSocket::bind(&local_addr)?;
 
-	tracing::Span::current().record("remote", &remote.to_string());
-	tracing::Span::current().record("local",  &sock.local_addr().unwrap().to_string());
+	tracing::Span::current().record("remote", remote.to_string());
+	tracing::Span::current().record("local",  sock.local_addr().unwrap().to_string());
 
 	Ok(Self {
 	    remote:		remote,
@@ -121,8 +121,8 @@ impl <'a> Session<'a> {
 
     fn log_request(&self, req: &Request<'_>, op: &'static str)
     {
-	tracing::Span::current().record("op", &op.to_string());
-	tracing::Span::current().record("filename", &req.get_filename().to_string_lossy().into_owned());
+	tracing::Span::current().record("op", op.to_string());
+	tracing::Span::current().record("filename", req.get_filename().to_string_lossy().into_owned());
 
 	debug!("request={:?}", req);
     }

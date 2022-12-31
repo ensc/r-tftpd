@@ -114,7 +114,7 @@ impl State {
 	    Self::Complete { file_size, .. }	=> Some(*file_size),
 	    Self::Refresh { file_size, .. }	=> Some(*file_size),
 
-	    Self::Error(hint)	=> panic!("get_file_size called in error state ({})", hint),
+	    Self::Error(hint)	=> panic!("get_file_size called in error state ({hint})"),
 	}
     }
 
@@ -224,7 +224,7 @@ impl EntryData {
 		response:	response,
 	    },
 
-	    s			=> panic!("unexpected state {:?}", s),
+	    s			=> panic!("unexpected state {s:?}"),
 	}
     }
 
@@ -326,7 +326,7 @@ impl EntryData {
 		Ok(pos)
 	    }
 
-	    s		=> panic!("unexpected state: {:?}", s),
+	    s		=> panic!("unexpected state: {s:?}"),
 	}
     }
 
@@ -457,7 +457,7 @@ impl EntryData {
 		Ok(res.0)
 	    }
 
-	    s		=> panic!("unexpected state: {:?}", s),
+	    s		=> panic!("unexpected state: {s:?}"),
 	}
 
     }
