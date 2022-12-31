@@ -39,7 +39,7 @@ jobs:
         command: build
 
     - name: Run tests
-      if: ${{ matrix.toolchain }} != '1.62'
+      if: ${{ matrix.toolchain != '1.62' }}
       uses: actions-rs/cargo@v1
       with:
         command: test
