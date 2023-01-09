@@ -21,7 +21,7 @@ impl std::fmt::Display for Datagram<'_> {
 	    Self::Write(r)	=> write!(f, "WRQ({r:?})"),
 	    Self::Data(id, d)	=> write!(f, "DATA({}, ..{})", id, d.len()),
 	    Self::Ack(id)	=> write!(f, "ACK({id}"),
-	    Self::Error(err, s)	=> write!(f, "ERROR({}, \"{}\")", err, String::from_utf8_lossy(s)),
+	    Self::Error(err, s)	=> write!(f, "ERROR({}, \"{}\")", err, String::from_utf8_lossy(s).trim()),
 	    Self::OAck		=> write!(f, "OACK"),
 	}
     }

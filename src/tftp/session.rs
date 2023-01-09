@@ -194,7 +194,7 @@ impl <'a> Session<'a> {
 		},
 
 		Ok(Datagram::Error(code, info))		=> {
-		    info!("remote site sent error #{} ({})", code, String::from_utf8_lossy(info));
+		    info!("remote site sent error #{} ({})", code, String::from_utf8_lossy(info).trim());
 		    break;
 		}
 
@@ -347,12 +347,12 @@ impl <'a> Session<'a> {
 
 		Ok(Datagram::Error(code, info))	if is_startup => {
 		    debug!("remote site sent error #{} ({}) on startup; probably just testing for existence",
-			   code, String::from_utf8_lossy(info));
+			   code, String::from_utf8_lossy(info).trim());
 		    break;
 		}
 
 		Ok(Datagram::Error(code, info)) => {
-		    info!("remote site sent error #{} ({})", code, String::from_utf8_lossy(info));
+		    info!("remote site sent error #{} ({})", code, String::from_utf8_lossy(info).trim());
 		    break;
 		}
 
