@@ -316,8 +316,11 @@ impl <'a> Session<'a> {
 		break;
 	    }
 
+	    let mut window_count = 0;
+
 	    for d in xfer.iter() {
 		stats.xmitsz += d.get_data_len() as u64;
+		window_count += 1;
 		self.send_datagram(d).await?;
 	    }
 
@@ -333,9 +336,12 @@ impl <'a> Session<'a> {
 		},
 
 		Ok(Datagram::Ack(id))	=> {
-		    debug!("got ACK {}", id);
+		    debug!("got ACK {id} (window {seq}+{window_count})");
 
-		    if is_startup && id.as_u16() < self.window_size {
+		    if is_startup && id + 1 < seq + window_count {
+			// else, message must be changed
+			assert_eq!(seq, SequenceId::new(1));
+
 			info!("first window truncated; you might want to reduce window size to {} or less",
 			      id.as_u16());
 		    }
