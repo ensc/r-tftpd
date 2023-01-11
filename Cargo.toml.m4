@@ -6,7 +6,7 @@ m4_divert(0)
 
 [package]
 name = "r-tftpd"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["Enrico Scholz <enrico.scholz@sigma-chemnitz.de>"]
 edition = "2021"
 description = "TFTP server with RFC 7440 windowsize support"
