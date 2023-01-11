@@ -47,6 +47,19 @@ impl SequenceId {
     }
 }
 
+impl PartialOrd for SequenceId {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+	// MAX must be odd to avoid equality on a delta of MAX/2
+	#[allow(clippy::assertions_on_constants)]
+	const _: () = assert!(u16::MAX % 2 != 0);
+
+	match other.0.wrapping_sub(self.0) as u32 {
+	    0	=> Some(std::cmp::Ordering::Equal),
+	    d	=> (2 * d).partial_cmp(&(u16::MAX as u32)),
+	}
+    }
+}
+
 impl std::ops::AddAssign<u16> for SequenceId {
     fn add_assign(&mut self, rhs: u16) {
         self.0 = (*self + rhs).0;
@@ -97,5 +110,19 @@ mod test {
 
 	assert_eq!(Id::new(0xfd03).as_u8_lo(), 0x03);
 	assert_eq!(Id::new(0xfd03).as_u8_hi(), 0xfd);
+    }
+
+    #[test]
+    fn test_cmp() {
+	use SequenceId as Id;
+
+	assert!(Id::new(0) == Id::new(0));
+	assert!(Id::new(0).partial_cmp(&Id::new(0)) == Some(std::cmp::Ordering::Equal));
+
+	assert!(Id::new(0) < Id::new(1));
+	assert!(Id::new(0) < Id::new(u16::MAX / 2 - 1));
+	assert!(Id::new(0) < Id::new(u16::MAX / 2));
+	assert!(Id::new(0) > Id::new(u16::MAX / 2 + 1));
+	assert!(Id::new(u16::MAX) < Id::new(0));
     }
 }
