@@ -22,10 +22,6 @@ impl SequenceId {
 	self.0.wrapping_sub(other.0)
     }
 
-    pub fn add(self, other: Self) -> Self {
-	Self(self.0.wrapping_add(other.0))
-    }
-
     pub fn as_u16(self) -> u16 {
 	self.0
     }
@@ -101,9 +97,9 @@ mod test {
 	assert_eq!(delta(    1, 65535),     2);
 	assert_eq!(delta(65535,     1), 65534);
 
-	assert_eq!(Id::new(    0).add(Id::new(1)),     Id::new(    1));
-	assert_eq!(Id::new(65535).add(Id::new(1)),     Id::new(    0));
-	assert_eq!(Id::new(65535).add(Id::new(65535)), Id::new(65534));
+	assert_eq!(Id::new(    0) + 1,     Id::new(    1));
+	assert_eq!(Id::new(65535) + 1,     Id::new(    0));
+	assert_eq!(Id::new(65535) + 65535, Id::new(65534));
 
 	assert_eq!(Id::new(0x01fe).as_u8_lo(), 0xfe);
 	assert_eq!(Id::new(0x0102).as_u8_hi(), 0x01);
