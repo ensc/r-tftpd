@@ -14,7 +14,7 @@ impl std::fmt::Debug for SequenceId {
 }
 
 impl SequenceId {
-    pub fn new(v: u16) -> Self {
+    pub const fn new(v: u16) -> Self {
 	Self(v)
     }
 
@@ -22,23 +22,23 @@ impl SequenceId {
 	self.0.wrapping_sub(other.0)
     }
 
-    pub fn as_u16(self) -> u16 {
+    pub const fn as_u16(self) -> u16 {
 	self.0
     }
 
-    pub fn as_slice(self) -> [u8;2] {
+    pub const fn as_slice(self) -> [u8;2] {
 	[(self.0 >> 8) as u8, (self.0 & 0xff) as u8]
     }
 
     #[inline]
-    pub fn as_u8_hi(self) -> u8 {
+    pub const fn as_u8_hi(self) -> u8 {
 	((self.0 >> 8) & 0xff) as u8
 
     }
 
     #[allow(clippy::identity_op)]
     #[inline]
-    pub fn as_u8_lo(self) -> u8 {
+    pub const fn as_u8_lo(self) -> u8 {
 	((self.0 >> 0) & 0xff) as u8
     }
 }
