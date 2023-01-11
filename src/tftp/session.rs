@@ -342,7 +342,7 @@ impl <'a> Session<'a> {
 			// else, message must be changed
 			assert_eq!(seq, SequenceId::new(1));
 
-			info!("first window truncated; you might want to reduce window size to {} or less",
+			warn!("first window truncated; you might want to reduce window size to {} or less",
 			      id.as_u16());
 		    }
 
