@@ -61,7 +61,7 @@ async fn run_test(ip: std::net::IpAddr)
 	max_window_size:	64,
 	max_connections:	1,
 	timeout:		Duration::from_secs(3),
-	no_rfc2374:		false,
+	no_rfc2347:		false,
 	wrq_devnull:		true,
 
 	#[cfg(feature = "proxy")]

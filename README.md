@@ -17,7 +17,7 @@ exists only for testing purposes.
 
  - [RFC 2347 "TFTP Option Extension"](https://www.rfc-editor.org/rfc/rfc2347.html):
 
-   - can be disabled (for testing purposes) by the `--no-rfc2374` flag
+   - can be disabled (for testing purposes) by the `--no-rfc2347` flag
 
  - [RFC 2348 "TFTP Blocksize Option"](https://datatracker.ietf.org/doc/html/rfc2348)
 
@@ -40,7 +40,7 @@ Options:
   -f, --fallback <URI>         fallback uri
   -L, --log-format <FMT>       log format [default: default] [possible values: default, compact, full, json]
   -C, --cache-dir <DIR>        directory used for cache files
-      --no-rfc2374             disable RFC 2373 (OACK) support; only useful for testing some clients
+      --no-rfc2347             disable RFC 2347 (OACK) support; only useful for testing some clients
       --wrq-devnull            accept WRQ but throw it away; only useful for testing some clients
       --disable-proxy          disable proxy support
   -h, --help                   Print help information

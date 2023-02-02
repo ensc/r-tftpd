@@ -151,7 +151,7 @@ impl <'a> Session<'a> {
 	    ..Default::default()
 	};
 
-	if !self.env.no_rfc2374 && req.has_options() {
+	if !self.env.no_rfc2347 && req.has_options() {
 	    self.wrq_oack(Oack::from_request(&req)).await?;
 	} else {
 	    self.send_ack(SequenceId::new(0)).await?;
@@ -284,7 +284,7 @@ impl <'a> Session<'a> {
 	    stats.filesize = sz;
 	}
 
-	if !self.env.no_rfc2374 && req.has_options() {
+	if !self.env.no_rfc2347 && req.has_options() {
 	    self.rrq_oack(Oack::from_request(&req), fsize).await?;
 	}
 

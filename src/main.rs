@@ -1,5 +1,5 @@
 #![allow(clippy::redundant_field_names)]
-#![allow(dead_code)]
+//#![allow(dead_code)]
 //#![allow(unused_variables)]
 
 #[macro_use]
@@ -29,7 +29,7 @@ pub struct Environment {
     max_window_size:	u16,
     max_connections:	u32,
     timeout:		Duration,
-    no_rfc2374:		bool,
+    no_rfc2347:		bool,
     wrq_devnull:	bool,
 
     #[cfg(feature = "proxy")]
@@ -222,9 +222,9 @@ struct CliOpts {
 	   help("directory used for cache files"))]
     cache_dir:		Option<String>,
 
-    #[clap(long, help("disable RFC 2373 (OACK) support; only useful for testing some clients"),
+    #[clap(long, help("disable RFC 2347 (OACK) support; only useful for testing some clients"),
 	   value_parser)]
-    no_rfc2374:		bool,
+    no_rfc2347:		bool,
 
     #[clap(long, help("accept WRQ but throw it away; only useful for testing some clients"),
 	   value_parser)]
@@ -268,7 +268,7 @@ fn main() {
 	max_window_size:	64,
 	max_connections:	args.max_connections,
 	timeout:		Duration::from_secs_f32(args.timeout),
-	no_rfc2374:		args.no_rfc2374,
+	no_rfc2347:		args.no_rfc2347,
 	wrq_devnull:		args.wrq_devnull,
 
 	#[cfg(feature = "proxy")]
