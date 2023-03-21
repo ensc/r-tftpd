@@ -31,7 +31,12 @@ jobs:
         override: true
 
     - name: Prepare
+      if: ${{ matrix.toolchain != '1.62' }}
       run: make prepare
+
+    - name: Prepare (1.62)
+      if: ${{ matrix.toolchain == '1.62' }}
+      run: make prepare RUST162_COMPAT=t
 
     - name: Run build
       uses: actions-rs/cargo@v1
