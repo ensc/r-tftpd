@@ -35,10 +35,16 @@ tracing-subscriber = { version = "*", features = ["json", "env-filter"] }
 listenfd = "*"
 nix = { version = "*", default-features = false, features = ["socket", "uio", "net", "socket"] }
 #systemd = { version = "*", default-features = false, features = [] }
-clap = { version = "*", features = ["derive", "color", "std"] }
 num-format = { version = "*", features = ["with-system-locale"] }
 
 r-tftpd-proxy = { version = "*", path = "mod-proxy", optional = true }
+
+[dependencies.clap]
+version = m4_ifdef(``RUST166_COMPAT'',``"<4.4"'',``"*"'')
+features = ["derive", "color", "std"]
+
+[dependencies.clap_lex]
+version = m4_ifdef(``RUST166_COMPAT'',``"<0.5.1"'',``"*"'')
 
 [dev-dependencies]
 rand = { version = "*", features = ["min_const_gen"] }
