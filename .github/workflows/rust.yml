@@ -13,9 +13,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      CARGO_BUILD_FLAGS: '--all-targets --tests --benches --workspace'
-
     strategy:
       matrix:
         toolchain: [ "stable", "nightly" ]
@@ -37,6 +34,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
+        args: "--all-targets --tests --benches --workspace --release"
 
     - name: Run tests
       uses: actions-rs/cargo@v1
@@ -47,7 +45,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      CARGO_BUILD_FLAGS: '--ignore-rust-version'
       RUST162_COMPAT: 't'
 
     ## rust 1.62 is tested because it is the version in RHEL 8; but
@@ -74,3 +71,4 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
+        args: "--ignore-rust-version"
