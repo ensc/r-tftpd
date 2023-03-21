@@ -13,12 +13,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    ## rust 1.62 is tested because it is the version in RHEL 8; but
-    ## tests requires more recent features so that they are not run
-    ## for this version
+    env:
+      CARGO_BUILD_FLAGS: '--all-targets --tests --benches --workspace'
+
     strategy:
       matrix:
-        toolchain: [ "stable", "nightly", "1.62" ]
+        toolchain: [ "stable", "nightly" ]
 
     steps:
     - uses: actions/checkout@v3
@@ -31,12 +31,7 @@ jobs:
         override: true
 
     - name: Prepare
-      if: ${{ matrix.toolchain != '1.62' }}
       run: make prepare
-
-    - name: Prepare (1.62)
-      if: ${{ matrix.toolchain == '1.62' }}
-      run: make prepare RUST162_COMPAT=t
 
     - name: Run build
       uses: actions-rs/cargo@v1
@@ -44,7 +39,38 @@ jobs:
         command: build
 
     - name: Run tests
-      if: ${{ matrix.toolchain != '1.62' }}
       uses: actions-rs/cargo@v1
       with:
         command: test
+
+  build-legacy:
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_BUILD_FLAGS: '--ignore-rust-version'
+      RUST162_COMPAT: 't'
+
+    ## rust 1.62 is tested because it is the version in RHEL 8; but
+    ## tests requires more recent features so that they are not run
+    ## for this version
+    strategy:
+      matrix:
+        toolchain: [ "1.62" ]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: ${{ matrix.toolchain }}
+        override: true
+
+    - name: Prepare (1.62)
+      run: make prepare RUST162_COMPAT=t
+
+    - name: Run build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
