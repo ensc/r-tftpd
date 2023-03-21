@@ -12,6 +12,7 @@ pub struct Uri {
 }
 
 bitflags::bitflags! {
+    #[derive(Clone, Copy)]
     struct Flags: u8 {
 	const NO_CACHE = 1;
 	const NO_COMPRESS = 2;
