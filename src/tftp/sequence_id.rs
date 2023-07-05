@@ -26,6 +26,7 @@ impl SequenceId {
 	self.0
     }
 
+    #[allow(dead_code)]
     pub const fn as_slice(self) -> [u8;2] {
 	[(self.0 >> 8) as u8, (self.0 & 0xff) as u8]
     }

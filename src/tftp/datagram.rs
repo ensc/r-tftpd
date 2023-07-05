@@ -129,6 +129,7 @@ impl <'a> Datagram<'a> {
 	    .and_then(|v| v)
     }
 
+    #[allow(dead_code)]
     pub fn is_ack(&self) -> bool {
 	matches!(self, Self::Ack(_))
     }

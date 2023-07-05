@@ -55,6 +55,7 @@ impl RecvInfoOpt {
 
 pub struct RecvInfo {
     pub size:	usize,
+    #[allow(dead_code)]
     if_idx:	libc::c_int,
     pub local:	IpAddr,
     pub remote:	SocketAddr,
