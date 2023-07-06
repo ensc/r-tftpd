@@ -13,9 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # test 1.66 because this is the rust version in RHEL 8
     strategy:
       matrix:
-        toolchain: [ "stable", "nightly" ]
+        toolchain: [ "stable", "nightly", "1.66" ]
 
     steps:
     - uses: actions/checkout@v3
@@ -40,35 +41,3 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: test
-
-  build-legacy:
-    runs-on: ubuntu-latest
-
-    env:
-      RUST162_COMPAT: 't'
-
-    ## rust 1.62 is tested because it is the version in RHEL 8; but
-    ## tests requires more recent features so that they are not run
-    ## for this version
-    strategy:
-      matrix:
-        toolchain: [ "1.62" ]
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: ${{ matrix.toolchain }}
-        override: true
-
-    - name: Prepare (1.62)
-      run: make prepare RUST162_COMPAT=t
-
-    - name: Run build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: "--ignore-rust-version"
