@@ -1,7 +1,6 @@
 IS_RELEASE ?=
 IS_OFFLINE ?=
 HAS_PROXY ?= t
-RUST162_COMPAT ?=
 
 DEFAULT_FEATURES ?= \
 	$(if $(filter-out n,${HAS_PROXY}),proxy) \
@@ -27,9 +26,6 @@ include mk/cargo.mk
 include mk/grcov.mk
 
 include contrib/Makefile.mk
-
-M4_FLAGS += \
-	$(if ${RUST162_COMPAT},-DRUST162_COMPAT=t)
 
 install:	install-fixup
 
