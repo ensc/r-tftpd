@@ -1,4 +1,4 @@
-use std::{os::unix::prelude::AsRawFd, io::Write};
+use std::io::Write;
 
 use super::*;
 
@@ -73,7 +73,7 @@ async fn run_test(ip: std::net::IpAddr)
     let addr = listen.local_addr().unwrap();
 
     let h_server = tokio::task::spawn(timeout(Duration::from_secs(5),
-					      run(env, Either::B(listen.as_raw_fd()))));
+					      run(env, Either::B(listen.into()))));
     let mut instance = 0;
     let mut do_abort = false;
 

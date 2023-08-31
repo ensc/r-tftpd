@@ -1,5 +1,5 @@
-use std::net::{ IpAddr };
-use std::os::unix::prelude::RawFd;
+use std::net::IpAddr;
+use std::os::fd::{OwnedFd, AsRawFd};
 
 use nix::sys::socket::{self, SockaddrStorage};
 
@@ -42,9 +42,9 @@ impl SocketAddr {
 	Self(addr.into())
     }
 
-    pub fn from_raw_fd(fd: RawFd) -> Result<Self>
+    pub fn from_raw_fd<T: AsRawFd>(fd: &T) -> Result<Self>
     {
-	socket::getsockname::<SockaddrStorage>(fd)
+	socket::getsockname::<SockaddrStorage>(fd.as_raw_fd())
 	    .map_err(|e| e.into())
 	    .and_then(Self::try_from)
     }
@@ -63,10 +63,7 @@ impl SocketAddr {
 	}
     }
 
-    /// # Safety
-    ///
-    /// can leak a file descriptor
-    pub unsafe fn socket(&self) -> Result<RawFd> {
+    pub fn socket(&self) -> Result<OwnedFd> {
 	use socket::SockFlag as SF;
 
 	socket::socket(self.get_af(), socket::SockType::Datagram,

@@ -10,7 +10,8 @@ pub mod errors;
 pub mod util;
 pub mod fetcher;
 
-use std::{sync::Arc, os::unix::prelude::RawFd};
+use std::os::fd::{OwnedFd, FromRawFd};
+use std::sync::Arc;
 use std::time::Duration;
 use util::{ UdpSocket, UdpRecvInfo, SocketAddr, Bucket, ToFormatted };
 
@@ -148,7 +149,7 @@ enum Either<T: Sized, U: Sized> {
     B(U),
 }
 
-async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
+async fn run(env: Environment, info: Either<SocketAddr, OwnedFd>) -> Result<()> {
     #[cfg(feature = "proxy")]
     {
 	#[allow(clippy::identity_op)]
@@ -175,7 +176,7 @@ async fn run(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
 }
 
 #[tokio::main(flavor = "current_thread")]
-async fn tokio_main(env: Environment, info: Either<SocketAddr, RawFd>) -> Result<()> {
+async fn tokio_main(env: Environment, info: Either<SocketAddr, OwnedFd>) -> Result<()> {
     run(env, info).await
 }
 
@@ -278,7 +279,8 @@ fn main() {
     let fd = match args.systemd {
 	true	=> listenfd::ListenFd::from_env()
 	    .take_raw_fd(0)
-	    .unwrap(),
+	    .unwrap()
+	    .map(|fd| unsafe { OwnedFd::from_raw_fd(fd) }),
 	false	=> None
     };
 
