@@ -2,8 +2,6 @@ use std::io::Write;
 
 use super::*;
 
-const FILE_NAME: &str = "input";
-
 fn create_file(p: &std::path::Path, fname: &str, mut sz: usize)
 {
     let mut f = std::fs::File::create(p.join(fname)).unwrap();
@@ -42,7 +40,7 @@ async fn run_test(ip: std::net::IpAddr)
     use tokio::time::timeout;
     use tokio::process::Command;
     use tempfile::TempDir;
-    use std::process::{Stdio};
+    use std::process::Stdio;
 
     let dir = TempDir::new().unwrap();
 
