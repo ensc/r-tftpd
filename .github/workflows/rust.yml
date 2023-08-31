@@ -29,7 +29,13 @@ jobs:
         override: true
 
     - name: Prepare
-      run: make prepare
+      shell: bash
+      env:
+        CI_TOOLCHAIN: ${{ matrix.toolchain }}
+      run: |
+        rm -f .local.mk Cargo.lock Cargo.toml .cargo/config
+        printf 'RUST%s_COMPAT = t' "${CI_TOOLCHAIN//./}" > .local.mk
+        make prepare
 
     - name: Run build
       uses: actions-rs/cargo@v1
