@@ -27,7 +27,7 @@ workflow:
   coverage: /^\s*lines\.*:\s*([\d\.]+%)/
 
   before_script:
-    - sudo -iH yum install -y tftp busybox curl
+    - sudo -iH yum install -y tftp busybox curl lighttpd
     - sudo -iH rm -f /etc/sudoers
     - |
       curl -fRS https://sh.rustup.rs > /tmp/rustup
