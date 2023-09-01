@@ -3,7 +3,8 @@
 IP=$1
 PORT=$2
 FILE=$3
-INSTANCE=$4
+REF=$4
+INSTANCE=$5
 
 PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin
 
@@ -17,7 +18,7 @@ is() {
 }
 
 compare() {
-    cmp "$FILE" output
+    cmp "$REF" output
 }
 
 ## tftp-hpa
@@ -93,7 +94,7 @@ case $INSTANCE in
 
   4)
 	## curl fails to download empty files
-	test "$FILE" != input_0 || exit 0
+	test "$REF" != input_0 || exit 0
 
 	run_curl --tftp-blksize 50000
 	compare
@@ -101,7 +102,7 @@ case $INSTANCE in
 
   5)
 	## curl fails to download empty files
-	test "$FILE" != input_0 || exit 0
+	test "$REF" != input_0 || exit 0
 
 	run_curl --tftp-no-options
 	compare

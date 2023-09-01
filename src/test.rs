@@ -1,19 +1,23 @@
-use std::io::Write;
+mod httpd;
+
+use std::{io::Write, path::Path};
 
 use super::*;
 
-fn create_file(p: &std::path::Path, fname: &str, mut sz: usize)
+fn create_file(p: &std::path::Path, fname: &str, mut sz: usize) -> std::io::Result<()>
 {
-    let mut f = std::fs::File::create(p.join(fname)).unwrap();
+    let mut f = std::fs::File::create(p.join(fname))?;
 
     while sz > 0 {
 	let buf = rand::random::<[u8; 4096]>();
 	let w_sz = buf.len().min(sz);
 
-	f.write_all(&buf[0..w_sz]).unwrap();
+	f.write_all(&buf[0..w_sz])?;
 
 	sz -= w_sz;
     }
+
+    Ok(())
 }
 
 fn abort_server(addr: std::net::SocketAddr)
@@ -25,14 +29,59 @@ fn abort_server(addr: std::net::SocketAddr)
     sock.send_to(b"QQ", addr).unwrap();
 }
 
-struct FileSpec(&'static str, usize);
+enum FileSpec {
+    Content(&'static str, usize),
+    Link(&'static str, &'static str, &'static str),
+}
+
+impl FileSpec {
+    pub fn create(&self, dir: &Path, host: Option<&str>) -> std::io::Result<()> {
+	match (self, host) {
+	    (Self::Content(name, sz), _)	=> create_file(dir, name, *sz),
+	    (Self::Link(name, dst, proto), Some(host))	=>
+		std::os::unix::fs::symlink(format!("http{proto}://{host}/{dst}"), dir.join(name)),
+	    (Self::Link(_, _, _), _)		=> Ok(()),
+	}
+    }
+
+    pub const fn is_available(&self) -> bool {
+	match self {
+	    Self::Content(_, _)		=> true,
+	    Self::Link(_, _, _)		=> cfg!(feature = "proxy"),
+	}
+    }
+
+    pub const fn get_file_name(&self) -> &str {
+	match self {
+	    Self::Content(name, _) |
+	    Self::Link(name, _, _)	=> name,
+	}
+    }
+
+    pub const fn get_reference(&self) -> &str {
+	match self {
+	    Self::Content(name, _) |
+	    Self::Link(_, name, _)	=> name,
+	}
+    }
+}
 
 const FILES: &[FileSpec] = &[
-    FileSpec("input_0",            0),
-    FileSpec("input_511",        511),
-    FileSpec("input_512",        512),
-    FileSpec("input_513",        513),
-    FileSpec("input_100000",  100000),
+    FileSpec::Content("input_0",            0),
+    FileSpec::Content("input_511",        511),
+    FileSpec::Content("input_512",        512),
+    FileSpec::Content("input_513",        513),
+    FileSpec::Content("input_100000",  100000),
+
+    FileSpec::Link("proxy_0",      "input_0",      ""),
+    FileSpec::Link("proxy_511",    "input_511",    "+nocache"),
+    FileSpec::Link("proxy_511_0",  "input_511",    "+nocache"),
+    FileSpec::Link("proxy_511_1",  "input_511",    ""),
+    FileSpec::Link("proxy_511_2",  "input_511",    ""),
+    FileSpec::Link("proxy_511_3",  "input_511",    "+nocache"),
+    FileSpec::Link("proxy_512",    "input_512",    "+nocompress"),
+    FileSpec::Link("proxy_513",    "input_513",    "+nocache+nocompress"),
+    FileSpec::Link("proxy_100000", "input_100000", ""),
 ];
 
 async fn run_test(ip: std::net::IpAddr)
@@ -47,8 +96,10 @@ async fn run_test(ip: std::net::IpAddr)
     let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
 	.join("scripts/run-tftp");
 
-    for f in FILES {
-	create_file(dir.path(), f.0, f.1);
+    let http_server = httpd::Server::create(dir.path());
+
+    for f in FILES.iter().filter(|f| f.is_available()) {
+	f.create(dir.path(), http_server.as_ref().and_then(|s| s.get_host())).unwrap()
     }
 
     let env = Environment {
@@ -76,11 +127,12 @@ async fn run_test(ip: std::net::IpAddr)
     let mut do_abort = false;
 
     loop {
-	for f in FILES {
+	for f in FILES.iter().filter(|f| f.is_available()) {
 	    let client = Command::new(&script)
 		.arg(addr.ip().to_string())
 		.arg(addr.port().to_string())
-		.arg(f.0)
+		.arg(f.get_file_name())
+		.arg(f.get_reference())
 		.arg(instance.to_string())
 		.stdin(Stdio::null())
 		.current_dir(dir.path())
