@@ -88,17 +88,14 @@ impl TryFrom<RecvInfoOpt> for RecvInfo {
 pub struct UdpSocket {
     fd:		OwnedFd,
     af:		socket::AddressFamily,
-    // must be an `Option` so that we can control the destruction order of
-    // 'fd' itself and 'async_fd' in drop()
-    //
     // TODO: the 'static lifetime is wrong; async_fd is bound to 'fd' (self)
-    async_fd:	Option<AsyncFd<BorrowedFd<'static>>>,
+    async_fd:	AsyncFd<BorrowedFd<'static>>,
 }
 
 impl UdpSocket {
     fn get_fd(&self) -> &AsyncFd<BorrowedFd<'_>>
     {
-	self.async_fd.as_ref().unwrap()
+	&self.async_fd
     }
 
     pub async fn sendto(&self, buf: &[u8], addr: &SocketAddr) -> Result<()>
@@ -244,10 +241,10 @@ impl UdpSocket {
 	res.try_into()
     }
 
-    fn new_async_fd(fd: &OwnedFd) -> Result<Option<AsyncFd<BorrowedFd<'static>>>> {
+    fn new_async_fd(fd: &OwnedFd) -> Result<AsyncFd<BorrowedFd<'static>>> {
 	let fd = unsafe { BorrowedFd::borrow_raw(fd.as_raw_fd()) };
 
-	Ok(Some(AsyncFd::new(fd)?))
+	Ok(AsyncFd::new(fd)?)
     }
 
     pub fn bind(addr: &SocketAddr) -> Result<Self> {
@@ -317,11 +314,5 @@ impl UdpSocket {
 	}
 
 	Ok(())
-    }
-}
-
-impl Drop for UdpSocket {
-    fn drop(&mut self) {
-	self.async_fd = None;
     }
 }
