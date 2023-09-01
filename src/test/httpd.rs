@@ -42,6 +42,8 @@ server.use-ipv6 = "disable"
 server.modules += ( "mod_deflate" )
 deflate.allowed-encodings = ("brotli", "gzip", "deflate")
 
+server.modules += ( "mod_expire" )
+
 server.systemd-socket-activation = "enable"
 "#;
 
