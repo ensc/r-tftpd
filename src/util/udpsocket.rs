@@ -1,6 +1,6 @@
 use std::io::IoSlice;
 use std::net::IpAddr;
-use std::os::fd::{OwnedFd, BorrowedFd};
+use std::os::fd::OwnedFd;
 use std::os::unix::prelude::AsRawFd;
 
 use nix::libc;
@@ -86,16 +86,15 @@ impl TryFrom<RecvInfoOpt> for RecvInfo {
 }
 
 pub struct UdpSocket {
-    fd:		OwnedFd,
     af:		socket::AddressFamily,
-    // TODO: the 'static lifetime is wrong; async_fd is bound to 'fd' (self)
-    async_fd:	AsyncFd<BorrowedFd<'static>>,
+    fd:		AsyncFd<OwnedFd>,
+}
 }
 
 impl UdpSocket {
-    fn get_fd(&self) -> &AsyncFd<BorrowedFd<'_>>
-    {
-	&self.async_fd
+    #[inline]
+    fn get_fd(&self) -> &AsyncFd<OwnedFd> {
+	&self.fd
     }
 
     pub async fn sendto(&self, buf: &[u8], addr: &SocketAddr) -> Result<()>
@@ -241,20 +240,13 @@ impl UdpSocket {
 	res.try_into()
     }
 
-    fn new_async_fd(fd: &OwnedFd) -> Result<AsyncFd<BorrowedFd<'static>>> {
-	let fd = unsafe { BorrowedFd::borrow_raw(fd.as_raw_fd()) };
-
-	Ok(AsyncFd::new(fd)?)
-    }
-
     pub fn bind(addr: &SocketAddr) -> Result<Self> {
 	let fd = addr.socket()?;
 	let af = addr.get_af();
 
 	match socket::bind(fd.as_raw_fd(), addr.as_nix()) {
 	    Ok(_)	=> Ok(Self {
-		async_fd:	Self::new_async_fd(&fd)?,
-		fd:		fd,
+		fd:		AsyncFd::new(fd)?,
 		af:		af,
 	    }),
 
@@ -267,8 +259,7 @@ impl UdpSocket {
 	let addr = SocketAddr::from_raw_fd(&fd)?;
 
 	Ok(Self {
-	    async_fd:	Self::new_async_fd(&fd)?,
-	    fd:		fd,
+	    fd:		AsyncFd::new(fd)?,
 	    af:		addr.get_af(),
 	})
     }
