@@ -89,6 +89,12 @@ pub struct UdpSocket {
     af:		socket::AddressFamily,
     fd:		AsyncFd<OwnedFd>,
 }
+
+impl AsRawFd for UdpSocket {
+    #[inline]
+    fn as_raw_fd(&self) -> std::os::fd::RawFd {
+        self.fd.as_raw_fd()
+    }
 }
 
 impl UdpSocket {
@@ -118,7 +124,7 @@ impl UdpSocket {
     {
 	use nix::Error as E;
 
-	match socket::sendto(self.fd.as_raw_fd(), buf, addr.as_nix(), flags) {
+	match socket::sendto(self.as_raw_fd(), buf, addr.as_nix(), flags) {
 	    Ok(sz) if sz == buf.len()	=> Ok(()),
 	    Ok(sz)			=> {
 		error!("sent only {} bytes out of {} ones", sz, buf.len());
@@ -151,7 +157,7 @@ impl UdpSocket {
 
 	let total_sz: usize = iov.iter().map(|v| v.len()).sum();
 
-	match socket::sendmsg(self.fd.as_raw_fd(), iov, &[], flags, Some(addr.as_nix())) {
+	match socket::sendmsg(self.as_raw_fd(), iov, &[], flags, Some(addr.as_nix())) {
 	    Ok(sz) if sz == total_sz	=> Ok(()),
 	    Ok(sz)			=> {
 		error!("sent only {} bytes out of {} ones", sz, total_sz);
@@ -168,7 +174,7 @@ impl UdpSocket {
 	loop {
 	    let mut async_guard = self.get_fd().readable().await?;
 
-	    match socket::recvfrom::<SockaddrStorage>(self.fd.as_raw_fd(), buf) {
+	    match socket::recvfrom::<SockaddrStorage>(self.as_raw_fd(), buf) {
 		Ok((sz, Some(addr)))	=> break Ok((sz, addr.try_into()?)),
 		Ok((_, None))		=> break Err(Error::Internal("no address from recvfrom")),
 		Err(E::EAGAIN)		=> async_guard.clear_ready(),
@@ -200,7 +206,7 @@ impl UdpSocket {
 	let mut cmsg = nix::cmsg_space!(libc::in6_pktinfo,
 					libc::in_pktinfo);
 
-	let recv = socket::recvmsg::<SockaddrStorage>(self.fd.as_raw_fd(), &mut iov, Some(&mut cmsg), flags)?;
+	let recv = socket::recvmsg::<SockaddrStorage>(self.as_raw_fd(), &mut iov, Some(&mut cmsg), flags)?;
 
 	let mut res = RecvInfoOpt {
 	    size:	recv.bytes,
@@ -265,7 +271,7 @@ impl UdpSocket {
     }
 
     pub fn local_addr(&self) -> Result<SocketAddr> {
-	let addr: SockaddrStorage = socket::getsockname(self.fd.as_raw_fd())?;
+	let addr: SockaddrStorage = socket::getsockname(self.as_raw_fd())?;
 
 	addr.try_into()
     }
@@ -284,7 +290,7 @@ impl UdpSocket {
     }
 
     pub fn set_nonblocking(&self) -> Result<()> {
-	let rc = unsafe { libc::fcntl(self.fd.as_raw_fd(), libc::F_GETFL) };
+	let rc = unsafe { libc::fcntl(self.as_raw_fd(), libc::F_GETFL) };
 
 	if rc < 0 {
 	    return Err(std::io::Error::last_os_error().into());
@@ -297,7 +303,7 @@ impl UdpSocket {
 	}
 
 	let rc = unsafe {
-	    libc::fcntl(self.fd.as_raw_fd(), libc::F_SETFL, flags | (libc::O_NONBLOCK as u32))
+	    libc::fcntl(self.as_raw_fd(), libc::F_SETFL, flags | (libc::O_NONBLOCK as u32))
 	};
 
 	if rc < 0 {
