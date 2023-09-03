@@ -32,6 +32,9 @@ fn abort_server(addr: std::net::SocketAddr)
 enum FileSpec {
     Content(&'static str, usize),
     Link(&'static str, &'static str, &'static str),
+
+    TestPlain(&'static str),
+    TestProxy(&'static str, &'static str, &'static str),
 }
 
 impl FileSpec {
@@ -41,27 +44,36 @@ impl FileSpec {
 	    (Self::Link(name, dst, proto), Some(host))	=>
 		std::os::unix::fs::symlink(format!("http{proto}://{host}/{dst}"), dir.join(name)),
 	    (Self::Link(_, _, _), _)		=> Ok(()),
+
+	    (Self::TestPlain(_), _) |
+	    (Self::TestProxy(_, _, _), _)	=> Ok(()),
 	}
     }
 
     pub const fn is_available(&self) -> bool {
 	match self {
-	    Self::Content(_, _)		=> true,
-	    Self::Link(_, _, _)		=> cfg!(feature = "proxy"),
+	    Self::Content(_, _) |
+	    Self::TestPlain(_)		=> true,
+	    Self::Link(_, _, _) |
+	    Self::TestProxy(_, _, _)	=> cfg!(feature = "proxy"),
 	}
     }
 
     pub const fn get_file_name(&self) -> &str {
 	match self {
 	    Self::Content(name, _) |
-	    Self::Link(name, _, _)	=> name,
+	    Self::Link(name, _, _) |
+	    Self::TestPlain(name) |
+	    Self::TestProxy(name, _, _)		=> name,
 	}
     }
 
     pub const fn get_reference(&self) -> &str {
 	match self {
 	    Self::Content(name, _) |
-	    Self::Link(_, name, _)	=> name,
+	    Self::Link(_, name, _) |
+	    Self::TestPlain(name) |
+	    Self::TestProxy(_, name, _)		=> name,
 	}
     }
 }
@@ -82,6 +94,15 @@ const FILES: &[FileSpec] = &[
     FileSpec::Link("proxy_512",    "input_512",    "+nocompress"),
     FileSpec::Link("proxy_513",    "input_513",    "+nocache+nocompress"),
     FileSpec::Link("proxy_100000", "input_100000", ""),
+
+    FileSpec::TestPlain("input_513"),
+    FileSpec::TestPlain("input_513"),
+
+    FileSpec::TestProxy("proxy_511",    "input_511",    "+nocache"),
+    FileSpec::TestProxy("proxy_511",    "input_511",    ""),
+    FileSpec::TestProxy("proxy_511",    "input_511",    "+nocache"),
+    FileSpec::TestProxy("proxy_511",    "input_511",    ""),
+    FileSpec::TestProxy("proxy_511",    "input_511",    ""),
 ];
 
 async fn run_test(ip: std::net::IpAddr)
