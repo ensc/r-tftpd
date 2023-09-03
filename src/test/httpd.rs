@@ -6,11 +6,12 @@ use std::os::fd::{AsRawFd, RawFd};
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::{Command, Stdio, Child};
+use std::time::Duration;
 
 use tempfile::TempDir;
 
 pub struct Server {
-    process:	Child,
+    process:	Option<Child>,
     _tmpdir:	TempDir,
     host:	String,
 }
@@ -127,7 +128,7 @@ impl Server {
 	let child = proc.spawn().unwrap();
 
 	Self {
-	    process:	child,
+	    process:	Some(child),
 	    _tmpdir:	tmpdir,
 	    host:	host,
 	}
@@ -136,11 +137,25 @@ impl Server {
     pub fn get_host(&self) -> Option<&str> {
 	Some(&self.host)
     }
+
+    pub fn wait_for_ready(&mut self) {
+	std::thread::sleep(Duration::from_millis(500));
+
+	match self.process.take() {
+	    None		=> panic!("no process"),
+	    Some(mut proc)	=> match proc.try_wait() {
+		Ok(None)	=> self.process = Some(proc),
+		res		=> panic!("lighttpd exited: {res:?}"),
+	    }
+	}
+    }
 }
 
 impl std::ops::Drop for Server {
     fn drop(&mut self) {
-        let _ = self.process.kill();
-	let _ = self.process.wait();
+	if let Some(mut proc) = self.process.take() {
+            let _ = proc.kill();
+	    let _ = proc.wait();
+	}
     }
 }

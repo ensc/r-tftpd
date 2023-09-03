@@ -96,7 +96,7 @@ async fn run_test(ip: std::net::IpAddr)
     let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
 	.join("scripts/run-tftp");
 
-    let http_server = httpd::Server::create(dir.path());
+    let mut http_server = httpd::Server::create(dir.path());
 
     for f in FILES.iter().filter(|f| f.is_available()) {
 	f.create(dir.path(), http_server.as_ref().and_then(|s| s.get_host())).unwrap()
@@ -120,6 +120,8 @@ async fn run_test(ip: std::net::IpAddr)
     let addr = std::net::SocketAddr::new(ip, 0);
     let listen = std::net::UdpSocket::bind(addr).unwrap();
     let addr = listen.local_addr().unwrap();
+
+    http_server.as_mut().map(|s| s.wait_for_ready());
 
     let h_server = tokio::task::spawn(timeout(Duration::from_secs(5),
 					      run(env, Either::B(listen.into()))));
