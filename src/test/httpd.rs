@@ -2,7 +2,7 @@ use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::net::Ipv4Addr;
-use std::os::fd::AsRawFd;
+use std::os::fd::{AsRawFd, RawFd};
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::{Command, Stdio, Child};
@@ -56,13 +56,34 @@ impl Server {
 	}
     }
 
+    unsafe fn remove_cloexec(fd: RawFd) -> nix::libc::c_int {
+	use nix::libc as libc;
+	use libc::FD_CLOEXEC;
+
+	match libc::fcntl(fd, libc::F_GETFD) {
+	    e if e < 0			=> e,
+	    f if f & FD_CLOEXEC == 0	=> 0,
+	    f				=> libc::fcntl(fd, libc::F_SETFD, f & !FD_CLOEXEC),
+	}
+    }
+
+    unsafe fn dup_nocloexec(old_fd: RawFd, new_fd: RawFd) -> std::io::Result<()> {
+	// TODO: this happens only occasionally and causes randomness in our
+	// code coverage tests :(
+	let rc = match old_fd == new_fd {
+	    false	=> nix::libc::dup3(old_fd, new_fd, 0),
+	    true	=> Self::remove_cloexec(old_fd),
+	};
+
+	if rc < 0 {
+	    return Err(std::io::Error::last_os_error());
+	}
+
+	Ok(())
+    }
+
     fn create_lighttpd(dir: &Path) -> Self
     {
-	// make sure that 'sock' below is not assigned to fd #3 by opening a
-	// dummy file which consumes the next open fd.  fds 0-2 should be in
-	// use by stdXXX so this is at least #3.
-	let _tmp = File::open("/dev/null").unwrap();
-
 	let addr = std::net::SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0);
 	let sock = std::net::TcpListener::bind(addr).unwrap();
 	let host = format!("localhost:{}", sock.local_addr().unwrap().port());
@@ -98,19 +119,9 @@ impl Server {
 
 	let sock_fd = sock.as_raw_fd();
 
-	// dup3 below relies on that
-	assert_ne!(sock_fd, 3);
-
 	unsafe {
-	    #[allow(unused_unsafe)]
 	    proc.pre_exec(move || {
-		let rc = unsafe { nix::libc::dup3(sock_fd, 3, 0) };
-
-		if rc < 0 {
-		    return Err(std::io::Error::last_os_error());
-		}
-
-		Ok(())
+		Self::dup_nocloexec(sock_fd, 3)
 	    })
 	};
 
