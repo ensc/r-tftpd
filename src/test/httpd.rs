@@ -23,8 +23,7 @@ const LIGHTTP_PROG: &str = match option_env!("LIGHTTP_PROG") {
 // TODO: we have to set LISTEN_PID to the pid after 'fork()'.  But pre_exec()
 // does not seem to support updating the environment.  Call 'lighttpd' through
 // a wrapper
-const LIGHTTP_WRAP: &str = r#"
-#!/bin/sh
+const LIGHTTP_WRAP: &str = r#"#!/bin/sh
 export LISTEN_PID=$$
 exec @LIGHTTP@ "$@"
 "#;
