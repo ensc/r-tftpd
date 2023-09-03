@@ -110,6 +110,7 @@ impl Server {
 
 	proc
 	    .arg(prog)
+	    .arg("-D")
 	    .arg("-i30")
 	    .arg("-f")
 	    .arg(conf)
