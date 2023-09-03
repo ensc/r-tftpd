@@ -106,16 +106,20 @@ impl Server {
 		       .as_bytes())
 	    .unwrap();
 
-	let mut proc = Command::new("sh");
+	let mut proc = Command::new("/bin/sh");
 
 	proc
 	    .arg(prog)
+	    .arg("-i30")
 	    .arg("-f")
 	    .arg(conf)
+	    .current_dir("/")
 	    .env("PATH",
 		 "/sbin:/usr/sbin:/usr/local/sbin:".to_owned() + &env::var("PATH").unwrap_or("/bin".to_string()))
 	    .env("LISTEN_FDS", "1")
-	    .stdin(Stdio::null());
+	    .stdin(Stdio::null())
+	    .stdout(Stdio::inherit())
+	    .stderr(Stdio::inherit());
 
 	let sock_fd = sock.as_raw_fd();
 
