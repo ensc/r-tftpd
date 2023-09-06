@@ -1,5 +1,6 @@
 use std::sync::atomic::Ordering as O;
 
+/// Simple, non-blocking semaphore implementation
 pub struct Bucket {
     level:	std::sync::atomic::AtomicU32,
 }
@@ -16,17 +17,14 @@ impl Bucket {
 	self.level.load(O::Relaxed)
     }
 
-    pub fn acquire(&self) -> BucketGuard {
-	let do_release = self.level
+    pub fn acquire(&self) -> Option<BucketGuard> {
+	self.level
 	    .fetch_update(O::Relaxed, O::Relaxed, |v| match v {
 		0	=> None,
 		v	=> Some(v - 1)
-	    }).is_ok();
-
-	BucketGuard {
-	    bucket:	self,
-	    do_release:	do_release,
-	}
+	    })
+	    .map(|_| BucketGuard(self))
+	    .ok()
     }
 
     fn release(&self) {
@@ -34,25 +32,17 @@ impl Bucket {
     }
 }
 
-pub struct BucketGuard<'a> {
-    bucket:	&'a Bucket,
-    do_release:	bool,
-}
+pub struct BucketGuard<'a>(&'a Bucket);
 
 impl Drop for BucketGuard<'_> {
     fn drop(&mut self) {
-	if self.do_release {
-	    self.bucket.release()
-	}
+	self.0.release()
     }
 }
 
 impl BucketGuard<'_> {
-    pub fn is_ok(&self) -> bool {
-	self.do_release
-    }
-
-    pub fn release(self) {
+    /// Some syntactic sugar around `drop()`
+    pub fn release(_this: Option<Self>) {
     }
 }
 
@@ -69,36 +59,36 @@ mod test {
 	{
 	    let g0 = bucket.acquire();
 	    assert_eq!(bucket.level(), 3);
-	    assert!(g0.is_ok());
+	    assert!(g0.is_some());
 
 	    let g1 = bucket.acquire();
 	    assert_eq!(bucket.level(), 2);
-	    assert!(g1.is_ok());
+	    assert!(g1.is_some());
 
 	    {
 		let g2 = bucket.acquire();
 		assert_eq!(bucket.level(), 1);
-		assert!(g2.is_ok());
+		assert!(g2.is_some());
 
 		let g3 = bucket.acquire();
 		assert_eq!(bucket.level(), 0);
-		assert!(g3.is_ok());
+		assert!(g3.is_some());
 
 		{
 		    let g4 = bucket.acquire();
 		    assert_eq!(bucket.level(), 0);
-		    assert!(!g4.is_ok());
+		    assert!(!g4.is_some());
 		}
 
 		assert_eq!(bucket.level(), 0);
 
-		g3.release();
+		BucketGuard::release(g3);
 
 		assert_eq!(bucket.level(), 1);
 
 		let g5 = bucket.acquire();
 		assert_eq!(bucket.level(), 0);
-		assert!(g5.is_ok());
+		assert!(g5.is_some());
 	    }
 
 	    assert_eq!(bucket.level(), 2);

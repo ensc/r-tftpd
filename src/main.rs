@@ -108,7 +108,7 @@ async fn handle_request(env: std::sync::Arc<Environment>,
 
     let b = bucket.acquire();
 
-    let res = match b.is_ok() {
+    let res = match b.is_some() {
 	false	=> session.do_reject().await,
 	true	=> session.run(req).await
     };
