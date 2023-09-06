@@ -63,14 +63,6 @@ pub struct RecvInfo {
     pub remote:	SocketAddr,
 }
 
-
-impl RecvInfo {
-    pub fn local(&self) -> IpAddr {
-	// TODO: handle spec_dest?
-	self.local
-    }
-}
-
 impl TryFrom<RecvInfoOpt> for RecvInfo {
     type Error = Error;
 
