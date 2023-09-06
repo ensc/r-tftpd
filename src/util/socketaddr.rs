@@ -49,20 +49,6 @@ impl SocketAddr {
 	    .and_then(Self::try_from)
     }
 
-    pub fn to_stdnet(&self) -> std::net::SocketAddr {
-	if let Some(ip) = self.0.as_sockaddr_in() {
-	    use std::net::SocketAddrV4 as V4;
-
-	    V4::new(ip.ip().into(), ip.port()).into()
-	} else if let Some(ip) = self.0.as_sockaddr_in6() {
-	    use std::net::SocketAddrV6 as V6;
-
-	    V6::new(ip.ip(), ip.port(), ip.flowinfo(), ip.scope_id()).into()
-	} else {
-	    panic!("addr {:?} is not ipv4 or ipv6", self.0);
-	}
-    }
-
     pub fn socket(&self) -> Result<OwnedFd> {
 	use socket::SockFlag as SF;
 
