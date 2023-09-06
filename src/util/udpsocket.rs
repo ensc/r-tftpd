@@ -1,6 +1,6 @@
 use std::io::IoSlice;
 use std::net::IpAddr;
-use std::os::fd::OwnedFd;
+use std::os::fd::{OwnedFd, AsFd};
 use std::os::unix::prelude::AsRawFd;
 
 use nix::libc;
@@ -262,7 +262,7 @@ impl UdpSocket {
     }
 
     pub fn from_raw(fd: OwnedFd) -> Result<Self> {
-	let addr = SocketAddr::from_raw_fd(&fd)?;
+	let addr = SocketAddr::from_fd(fd.as_fd())?;
 
 	Ok(Self {
 	    fd:		AsyncFd::new(fd)?,

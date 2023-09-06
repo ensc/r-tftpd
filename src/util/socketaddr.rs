@@ -1,5 +1,5 @@
 use std::net::IpAddr;
-use std::os::fd::{OwnedFd, AsRawFd};
+use std::os::fd::{OwnedFd, AsRawFd, BorrowedFd};
 
 use nix::sys::socket::{self, SockaddrStorage};
 
@@ -42,7 +42,7 @@ impl SocketAddr {
 	Self(addr.into())
     }
 
-    pub fn from_raw_fd<T: AsRawFd>(fd: &T) -> Result<Self>
+    pub fn from_fd(fd: BorrowedFd) -> Result<Self>
     {
 	socket::getsockname::<SockaddrStorage>(fd.as_raw_fd())
 	    .map_err(|e| e.into())
