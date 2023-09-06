@@ -1,6 +1,7 @@
 mod httpd;
 
-use std::{io::Write, path::Path};
+use std::io::Write;
+use std::path::Path;
 
 use super::*;
 

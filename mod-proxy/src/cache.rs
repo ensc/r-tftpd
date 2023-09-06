@@ -1,9 +1,9 @@
-use std::os::unix::prelude::{AsRawFd};
+use std::os::unix::prelude::AsRawFd;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
 // use chrono::{ NaiveDateTime, Utc };
-use std::time::{ Duration };
+use std::time::Duration;
 
 use super::http;
 use http::Time;
