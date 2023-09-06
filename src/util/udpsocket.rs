@@ -290,20 +290,13 @@ impl UdpSocket {
     }
 
     pub fn set_nonblocking(&self) -> Result<()> {
-	let rc = unsafe { libc::fcntl(self.as_raw_fd(), libc::F_GETFL) };
+	use libc::{ fcntl, F_GETFL, F_SETFL, O_NONBLOCK };
 
-	if rc < 0 {
-	    return Err(std::io::Error::last_os_error().into());
-	}
-
-	let flags = rc as u32;
-
-	if flags & (libc::O_NONBLOCK as u32) != 0 {
-	    return Ok(());
-	}
-
-	let rc = unsafe {
-	    libc::fcntl(self.as_raw_fd(), libc::F_SETFL, flags | (libc::O_NONBLOCK as u32))
+	let fd = self.as_raw_fd();
+	let rc = match unsafe { fcntl(fd, F_GETFL) } {
+	    e if e < 0			=> e,
+	    f if f & O_NONBLOCK != 0	=> 0,
+	    f				=> unsafe { fcntl(fd, F_SETFL, f | O_NONBLOCK) }
 	};
 
 	if rc < 0 {
