@@ -30,6 +30,7 @@ fn abort_server(addr: std::net::SocketAddr)
     sock.send_to(b"QQ", addr).unwrap();
 }
 
+#[derive(Debug)]
 enum FileSpec {
     Content(&'static str, usize),
     Link(&'static str, &'static str, &'static str),
@@ -152,6 +153,8 @@ async fn run_test(ip: std::net::IpAddr)
 
     loop {
 	for f in FILES.iter().filter(|f| f.is_available()) {
+	    debug!("running {f:?} test");
+
 	    let client = Command::new(&script)
 		.arg(addr.ip().to_string())
 		.arg(addr.port().to_string())
@@ -160,13 +163,19 @@ async fn run_test(ip: std::net::IpAddr)
 		.arg(instance.to_string())
 		.stdin(Stdio::null())
 		.current_dir(dir.path())
-		.spawn()
-		.expect("failed to start run-tftp")
-		.wait()
+		.output()
 		.await
 		.expect("run-tftp failed");
 
-	    match client.code() {
+	    if !client.stderr.is_empty() {
+		warn!("run-tftp stderr:\n{}", String::from_utf8_lossy(&client.stderr));
+	    }
+
+	    if !client.stdout.is_empty() {
+		debug!("run-tftp stdout:\n{}", String::from_utf8_lossy(&client.stdout));
+	    }
+
+	    match client.status.code() {
 		Some(0)		=> {},
 		Some(23)	=> {
 		    println!("run-tftp #{} skipped", instance);
@@ -199,10 +208,26 @@ async fn run_test(ip: std::net::IpAddr)
 
 // switching tokio runtime between tests breaks the Cache singleton
 static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+static LOG_LOCK: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
+
+pub fn init_logging() {
+    let mut log = LOG_LOCK.lock().unwrap();
+
+    if !*log {
+	tracing_subscriber::fmt()
+	    .with_env_filter(tracing_subscriber::EnvFilter::from_env("RUST_TEST_LOG"))
+	    .with_writer(tracing_subscriber::fmt::writer::TestWriter::new())
+	    .init();
+
+	*log = true;
+    }
+}
 
 #[tokio::test]
 async fn test_ipv4() {
     let _g = TEST_LOCK.lock().unwrap();
+
+    init_logging();
 
     run_test(std::net::Ipv4Addr::LOCALHOST.into()).await;
 }
@@ -210,6 +235,8 @@ async fn test_ipv4() {
 #[tokio::test]
 async fn test_ipv6() {
     let _g = TEST_LOCK.lock().unwrap();
+
+    init_logging();
 
     run_test(std::net::Ipv6Addr::LOCALHOST.into()).await;
 }
