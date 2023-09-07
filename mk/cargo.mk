@@ -97,6 +97,7 @@ cargo-update:	FORCE
 cargo-build:	FORCE
 	$(call _cargo_build,,)
 
+cargo-test:	export RUST_TEST_LOG=info
 cargo-test:	export RUST_BACKTRACE=1
 cargo-test:
 	$(call _cargo_test,,)
