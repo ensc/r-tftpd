@@ -655,6 +655,8 @@ impl Cache {
     }
 
     #[instrument(level = "trace")]
+    // https://github.com/rust-lang/rust-clippy/issues/6446
+    #[allow(clippy::await_holding_lock)]
     pub async fn close() {
 	let mut cache = CACHE.write().unwrap();
 
@@ -665,8 +667,13 @@ impl Cache {
 	if cache.refcnt == 0 {
 	    cache.entries.clear();
 
-	    cache.abort_ch.take().unwrap().send(()).unwrap();
-	    cache.gc.take().unwrap().await.unwrap();
+	    let abort_ch = cache.abort_ch.take().unwrap();
+	    let gc = cache.gc.take().unwrap();
+
+	    drop(cache);
+
+	    abort_ch.send(()).unwrap();
+	    gc.await.unwrap();
 	}
     }
 
