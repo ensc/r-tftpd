@@ -41,11 +41,8 @@ num-format = { version = "*", features = ["with-system-locale"] }
 r-tftpd-proxy = { version = "*", path = "mod-proxy", optional = true }
 
 [dependencies.clap]
-version = m4_ifdef(``RUST166_COMPAT'',``"<4.4"'',``"*"'')
+version = "*"
 features = ["derive", "color", "std"]
-
-[dependencies.clap_lex]
-version = m4_ifdef(``RUST166_COMPAT'',``"<0.5.1"'',``"*"'')
 
 [dev-dependencies]
 rand = { version = "*", features = ["min_const_gen"] }

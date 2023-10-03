@@ -30,8 +30,17 @@ include mk/grcov.mk
 
 include contrib/Makefile.mk
 
-M4_FLAGS += \
-	$(if ${RUST166_COMPAT},-DRUST166_COMPAT=t)
+PRECISE_PKG_166 = \
+	clap@4.3.24 \
+	clap_lex@0.5.0 \
+	anstyle@1.0.2 \
+	anstyle-parse@0.2.1 \
+
+update_166:	.cargo-update-precise-pre
+	$(call cargo_update_precise,${PRECISE_PKG_166})
+
+update-compat:	.cargo-update-precise-pre
+update-compat:	$(if ${RUST166_COMPAT},update_166)
 
 install:	install-fixup
 
