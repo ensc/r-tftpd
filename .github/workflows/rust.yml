@@ -41,13 +41,13 @@ jobs:
       run: |
         rm -f .local.mk Cargo.lock Cargo.toml .cargo/config
         printf 'RUST%s_COMPAT = t' "${CI_TOOLCHAIN//./}" > .local.mk
-        make prepare
+        make update-compat
 
     - name: Run build
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: "--all-targets --tests --benches --workspace --release"
+        args: "--all-targets --locked --tests --benches --workspace --release"
 
     - name: Run tests
       uses: actions-rs/cargo@v1
