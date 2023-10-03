@@ -3,6 +3,9 @@ name = "r-tftpd-proxy"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+legacy_rust_166 = []
+
 [dependencies]
 reqwest = { version  = "*", default-features = false, features = ["default-tls", "gzip", "brotli", "deflate", "socks"] }
 tempfile = "*"

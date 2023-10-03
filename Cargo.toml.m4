@@ -23,6 +23,7 @@ members = [
 default = [ m4_ifdef(``CARGO_DEFAULT_FEATURES'',``CARGO_DEFAULT_FEATURES'') ]
 
 proxy = [ "r-tftpd-proxy" ]
+legacy_rust_166 = []
 
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["rt", "time", "net", "macros"] }

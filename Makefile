@@ -5,6 +5,7 @@ RUST166_COMPAT ?=
 
 DEFAULT_FEATURES ?= \
 	$(if $(filter-out n,${HAS_PROXY}),proxy) \
+	$(if ${RUST166_COMPAT},legacy_rust_166) \
 
 CARGO_FILES = \
 	.cargo/config \
