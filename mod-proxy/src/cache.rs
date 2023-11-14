@@ -1,4 +1,4 @@
-use std::os::unix::prelude::AsRawFd;
+use std::{os::unix::prelude::AsRawFd, time::Instant};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
@@ -171,7 +171,7 @@ impl State {
 	}.map(Some)
     }
 
-    pub fn is_outdated(&self, reftm: Time, max_lt: Duration) -> bool {
+    pub fn is_outdated(&self, reftm: Instant, max_lt: Duration) -> bool {
 	match self.get_cache_info() {
 	    None	=> true,
 	    Some(info)	=> info.is_outdated(reftm, max_lt),
@@ -228,7 +228,7 @@ impl EntryData {
 	}
     }
 
-    pub fn is_outdated(&self, reftm: Time, max_lt: Duration) -> bool {
+    pub fn is_outdated(&self, reftm: Instant, max_lt: Duration) -> bool {
 	self.state.is_outdated(reftm, max_lt)
     }
 
@@ -332,7 +332,7 @@ impl EntryData {
 
     pub fn fill_request(&self, req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
 	match self.state.get_cache_info() {
-	    Some(info)	=> info.fill_request(self.reftm, req),
+	    Some(info)	=> info.fill_request(self.reftm.mono, req),
 	    None	=> req,
 	}
     }
@@ -341,7 +341,7 @@ impl EntryData {
 	let cache_info = self.state.get_cache_info();
 
 	match cache_info.and_then(|c| c.not_after) {
-	    Some(t) if t < Time::now()			=> return false,
+	    Some(t) if t < Time::now().mono		=> return false,
 	    _						=> {},
 	}
 
@@ -535,7 +535,7 @@ impl CacheImpl {
 		_	=> continue,
 	    };
 
-	    tmp.push((key.clone(), entry.get_cache_info().map(|c| c.localtm.mono)));
+	    tmp.push((key.clone(), entry.get_cache_info().map(|c| c.local_time)));
 	}
 
 	tmp.sort_by(|(_, tm_a), (_, tm_b)| tm_a.cmp(tm_b));
@@ -571,7 +571,7 @@ impl CacheImpl {
 		_	=> continue,
 	    };
 
-	    if entry.is_outdated(now, max_lt) {
+	    if entry.is_outdated(now.mono, max_lt) {
 		outdated.push(key.clone());
 	    }
 	}

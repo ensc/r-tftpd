@@ -1,16 +1,18 @@
-use std::time::Duration;
-
-use super::{Time, HttpHeader};
+use std::time::{Duration, Instant, SystemTime};
 
 use crate::{ Result, Error };
 
+use super::{ HttpHeader, Time };
+
 #[derive(Debug)]
 pub struct CacheInfo {
-    pub not_after:	Option<Time>,
-    pub modified:	Option<Time>,
+    pub not_after:	Option<Instant>,
+    // given in remote time
+    pub modified:	Option<SystemTime>,
     pub etag:		Option<reqwest::header::HeaderValue>,
-    pub reftm:		Time,
-    pub localtm:	Time,
+
+    // the time when resoure was loaded
+    pub local_time:	Instant,
 }
 
 impl CacheInfo {
@@ -33,40 +35,39 @@ impl CacheInfo {
 	    }
 	}
 
-	let reftm = hdrs.as_time(localtm, H::DATE)?.unwrap_or(localtm);
+	let remote_tm = hdrs.as_system_time(H::DATE)?.unwrap_or(localtm.local);
 
 	let not_after = match max_sage.or(max_age) {
-	    Some(d)	=> Some(reftm.checked_add(d).ok_or(Error::BadHttpTime)?),
-	    None	=> hdrs.as_time(localtm, H::EXPIRES)?,
+	    Some(d)	=> Some(localtm.mono.checked_add(d).ok_or(Error::BadHttpTime)?),
+	    None	=> hdrs.as_instant(localtm.mono, remote_tm, H::EXPIRES)?,
 	};
 
 	Ok(Self {
-	    not_after:	not_after,
-	    modified:	hdrs.as_time(localtm, H::LAST_MODIFIED)?,
-	    etag:	hdrs.get(H::ETAG).cloned(),
-	    reftm:	reftm,
-	    localtm:	localtm,
+	    not_after:		not_after,
+	    modified:		hdrs.as_system_time(H::LAST_MODIFIED)?,
+	    etag:		hdrs.get(H::ETAG).cloned(),
+	    local_time:		localtm.mono,
 	})
     }
 
-    pub fn fill_request(&self, localtm: Time, mut req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
+    pub fn fill_request(&self, now: Instant, mut req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
 	use reqwest::header as H;
 
 	if let Some(tm) = self.modified {
-	    req = req.header(H::IF_MODIFIED_SINCE, httpdate::fmt_http_date(tm.local));
+	    req = req.header(H::IF_MODIFIED_SINCE, httpdate::fmt_http_date(tm));
 	}
 
 	if let Some(e) = &self.etag {
 	    req = req.header(H::IF_NONE_MATCH, e);
 	}
 
-	match self.not_after {
-	    // TODO: this compares server time (tm) with localtime (localtm)
-	    Some(tm) if tm < localtm	=> req = req.header(H::CACHE_CONTROL, "max-age=0"),
-	    Some(tm)			=>
-		req = req.header(H::CACHE_CONTROL,
-				 format!("max-age={}", tm.checked_duration_since(localtm).unwrap().as_secs())),
-	    None			=> {},
+	if let Some(tm) = self.not_after {
+	    let delta = match tm < now {
+		true	=> 0,
+		false	=> tm.checked_duration_since(now).unwrap().as_secs(),
+	    };
+
+	    req = req.header(H::CACHE_CONTROL, format!("max-age={delta}"));
 	}
 
 	req
@@ -84,8 +85,8 @@ impl CacheInfo {
 	})
     }
 
-    pub fn is_outdated(&self, reftm: Time, max_lt: Duration) -> bool {
+    pub fn is_outdated(&self, reftm: Instant, max_lt: Duration) -> bool {
 	self.not_after.map(|t| t < reftm).unwrap_or(false) ||
-	    reftm.checked_duration_since(self.localtm).map(|d| d > max_lt).unwrap_or(false)
+	    reftm.checked_duration_since(self.local_time).map(|d| d > max_lt).unwrap_or(false)
     }
 }
