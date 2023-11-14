@@ -186,6 +186,13 @@ pub struct EntryData {
     reftm:		Time,
 }
 
+impl std::fmt::Display for EntryData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}: reftm={:?}, state={:?}",
+				 self.key, self.reftm.local, self.state))
+    }
+}
+
 impl EntryData {
     pub fn new(url: &url::Url) -> Self {
 	Self {
@@ -715,5 +722,22 @@ impl Cache {
 	let cache = CACHE.read().unwrap();
 
 	Ok(tempfile::tempfile_in(&cache.tmpdir)?)
+    }
+
+    pub async fn dump() {
+	let mut entries = Vec::new();
+
+	{
+	    let cache = CACHE.read().unwrap();
+
+	    entries.reserve(cache.entries.len());
+	    entries.extend(cache.entries.values().cloned());
+	}
+
+	println!("Cache information ({} entries)", entries.len());
+
+	for e in entries {
+	    println!("{}", e.read().await);
+	}
     }
 }
