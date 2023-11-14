@@ -26,7 +26,7 @@ proxy = [ "r-tftpd-proxy" ]
 legacy_rust_166 = []
 
 [dependencies]
-tokio = { version = "1", default-features = false, features = ["rt", "time", "net", "macros"] }
+tokio = { version = "1", default-features = false, features = ["rt", "time", "net", "macros", "signal"] }
 thiserror = "*"
 lazy_static = "*"
 regex = "*"

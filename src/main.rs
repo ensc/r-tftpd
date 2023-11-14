@@ -82,6 +82,27 @@ impl std::fmt::Display for SpeedInfo<'_> {
     }
 }
 
+async fn sigusr1_handler(mut stream: tokio::signal::unix::Signal)
+{
+    loop {
+	stream.recv().await;
+	debug!("got SIGUSR1");
+
+	#[cfg(feature = "proxy")]
+	fetcher::Cache::dump().await;
+    }
+}
+
+fn init_sighandlers() -> Result<()>
+{
+    use tokio::signal::unix::{ signal, SignalKind };
+
+    let stream = signal(SignalKind::from_raw(nix::libc::SIGUSR1))?;
+    tokio::spawn(sigusr1_handler(stream));
+
+    Ok(())
+}
+
 use tracing::field::Empty;
 
 #[instrument(skip_all,
@@ -171,6 +192,8 @@ async fn run(env: Environment, info: Either<SocketAddr, OwnedFd>) -> Result<()> 
 
     sock.set_nonblocking()?;
     sock.set_request_pktinfo()?;
+
+    init_sighandlers()?;
 
     run_tftpd_loop(std::sync::Arc::new(env), sock).await
 }
