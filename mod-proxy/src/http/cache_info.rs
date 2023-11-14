@@ -90,3 +90,84 @@ impl CacheInfo {
 	    reftm.checked_duration_since(self.local_time).map(|d| d > max_lt).unwrap_or(false)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_outdated() {
+	use reqwest::header as H;
+	use reqwest::header::HeaderMap;
+
+	// Sun May 16 01:00:00 CET 1971
+	let now = Time {
+	    local:	SystemTime::UNIX_EPOCH + Duration::from_secs(500 * 24 * 3600),
+	    mono:	Instant::now(),
+	};
+
+	let tm_20 = now.mono + Duration::from_secs(20);
+	let tm_50 = now.mono + Duration::from_secs(50);
+	let tm_1d = now.mono + Duration::from_secs(24 * 3600);
+
+	let e = {
+	    let mut map = HeaderMap::new();
+
+	    map.append(H::DATE, "Mon, 24 May 1971 00:00:00 GMT".parse().unwrap());
+
+	    CacheInfo::new(now, &map).unwrap()
+	};
+
+	//println!("e={e:?}");
+
+	assert!(!e.is_outdated(now.mono,  Duration::from_secs(10)));
+	assert!( e.is_outdated(tm_20,     Duration::from_secs(10)));
+
+	//
+
+	let e = {
+	    let mut map = HeaderMap::new();
+
+	    map.append(H::CACHE_CONTROL, "max-age=23".parse().unwrap());
+	    map.append(H::DATE, "Mon, 24 May 1971 00:00:00 GMT".parse().unwrap());
+
+	    CacheInfo::new(now, &map).unwrap()
+	};
+
+	//println!("e={e:?}");
+
+	assert!(!e.is_outdated(now.mono, Duration::from_secs(100)));
+	assert!(!e.is_outdated(tm_20,    Duration::from_secs(100)));
+	assert!( e.is_outdated(tm_50,    Duration::from_secs(100)));
+
+	//
+
+	let e = {
+	    let mut map = HeaderMap::new();
+
+	    map.append(H::EXPIRES, "Mon, 24 May 1971 12:00:00 GMT".parse().unwrap());
+	    map.append(H::DATE, "Mon, 24 May 1971 00:00:00 GMT".parse().unwrap());
+
+	    CacheInfo::new(now, &map).unwrap()
+	};
+
+	//println!("e={e:?}");
+
+	assert!(!e.is_outdated(now.mono, Duration::from_secs(100_000)));
+	assert!(!e.is_outdated(tm_20,    Duration::from_secs(100_000)));
+	assert!( e.is_outdated(tm_1d,    Duration::from_secs(100_000)));
+
+	let e = {
+	    let mut map = HeaderMap::new();
+
+	    map.append(H::LAST_MODIFIED, "Sun, 23 May 1971 00:00:00 GMT".parse().unwrap());
+	    map.append(H::DATE, "Mon, 24 May 1971 00:00:00 GMT".parse().unwrap());
+
+	    CacheInfo::new(now, &map).unwrap()
+	};
+
+	//println!("e={e:?}");
+
+	assert!(!e.is_outdated(now.mono, Duration::from_secs(100_000)));
+    }
+}
