@@ -17,3 +17,4 @@ pub use cache::{ Cache,
 		 EntryData as CacheEntryData };
 
 mod http;
+mod util;
