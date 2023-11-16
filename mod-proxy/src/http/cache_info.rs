@@ -15,6 +15,18 @@ pub struct CacheInfo {
     pub local_time:	Instant,
 }
 
+impl crate::util::PrettyDump for CacheInfo {
+    fn pretty_dump(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	use crate::util::pretty_dump_wrap as pretty;
+
+        f.write_fmt(format_args!("[not_after={}, modified={}, etag={}, tm={}]",
+				 pretty(&self.not_after),
+				 pretty(&self.modified),
+				 pretty(&self.etag),
+				 pretty(&self.local_time)))
+    }
+}
+
 impl CacheInfo {
     pub fn new(localtm: Time, hdrs: &reqwest::header::HeaderMap) -> Result<Self>
     {

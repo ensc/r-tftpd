@@ -9,6 +9,7 @@ use super::http;
 use http::Time;
 
 use crate::{ Result, Error };
+use crate::util::pretty_dump_wrap as pretty;
 
 lazy_static::lazy_static!{
     static ref CACHE: std::sync::RwLock<CacheImpl> = std::sync::RwLock::new(CacheImpl::new());
@@ -27,6 +28,12 @@ impl Stats {
 	self.tm += start.elapsed();
 
 	chunk
+    }
+}
+
+impl crate::util::PrettyDump for Stats {
+    fn pretty_dump(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:.3}s", self.tm.as_secs_f32()))
     }
 }
 
@@ -68,6 +75,35 @@ enum State {
 	file:		std::fs::File,
 	file_size:	u64,
     },
+}
+
+impl crate::util::PrettyDump for State {
+    fn pretty_dump(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            State::None =>
+		f.write_str("no state"),
+            State::Error(e) =>
+		f.write_fmt(format_args!("error {:?}", e)),
+            State::Init { response } =>
+		f.write_fmt(format_args!("INIT({})", pretty(response))),
+            State::HaveMeta { response, cache_info, file_size, stats } =>
+		f.write_fmt(format_args!("META({}, {}, {}, {})",
+					 pretty(response), pretty(cache_info),
+					 pretty(file_size), pretty(stats))),
+            State::Downloading { response, cache_info, file_size, file, file_pos, stats } =>
+		f.write_fmt(format_args!("DOWNLOADING({}, {}, {}, {}@{}, {})",
+					 pretty(response), pretty(cache_info),
+					 pretty(file_size), pretty(file),
+					 file_pos, pretty(stats))),
+            State::Complete { cache_info, file, file_size } =>
+		f.write_fmt(format_args!("COMPLETE({}, {}/{})",
+					 pretty(cache_info), pretty(file), file_size)),
+            State::Refresh { response, cache_info, file, file_size } =>
+		f.write_fmt(format_args!("REFRESH({},.{}, [{}/{}])",
+					 pretty(response), pretty(cache_info), pretty(file),
+					 file_size)),
+        }
+    }
 }
 
 impl State {
@@ -188,8 +224,8 @@ pub struct EntryData {
 
 impl std::fmt::Display for EntryData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}: reftm={:?}, state={:?}",
-				 self.key, self.reftm.local, self.state))
+	f.write_fmt(format_args!("{}: reftm={}, state={}", self.key,
+		    pretty(&self.reftm.local), pretty(&self.state)))
     }
 }
 
