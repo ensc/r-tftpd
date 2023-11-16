@@ -537,6 +537,10 @@ impl CacheImpl {
 	}
     }
 
+    pub fn clear(&mut self) {
+	self.entries.clear();
+    }
+
     pub fn get_client(&self) -> Arc<reqwest::Client> {
 	self.client.clone()
     }
@@ -775,5 +779,11 @@ impl Cache {
 	for e in entries {
 	    println!("{}", e.read().await);
 	}
+    }
+
+    pub async fn clear() {
+	let mut cache = CACHE.write().unwrap();
+
+	cache.clear();
     }
 }
