@@ -3,6 +3,8 @@ mod httpd;
 use std::io::Write;
 use std::path::Path;
 
+use nix::libc::{kill, getpid};
+
 use super::*;
 
 fn create_file(p: &std::path::Path, fname: &str, mut sz: usize) -> std::io::Result<()>
@@ -187,12 +189,16 @@ async fn run_test(ip: std::net::IpAddr)
 		}
 		_		=> panic!("run-tftpd failed: {:?}", client),
 	    }
+
+	    unsafe { kill(getpid(), nix::libc::SIGUSR1) };
 	}
 
 	if do_abort {
 	    abort_server(addr);
 	    break;
 	}
+
+	unsafe { kill(getpid(), nix::libc::SIGUSR2) };
 
 	instance += 1
     }
