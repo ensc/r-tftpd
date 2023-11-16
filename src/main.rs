@@ -93,12 +93,26 @@ async fn sigusr1_handler(mut stream: tokio::signal::unix::Signal)
     }
 }
 
+async fn sigusr2_handler(mut stream: tokio::signal::unix::Signal)
+{
+    loop {
+	stream.recv().await;
+	debug!("got SIGUSR2");
+
+	#[cfg(feature = "proxy")]
+	fetcher::Cache::clear().await;
+    }
+}
+
 fn init_sighandlers() -> Result<()>
 {
     use tokio::signal::unix::{ signal, SignalKind };
 
     let stream = signal(SignalKind::from_raw(nix::libc::SIGUSR1))?;
     tokio::spawn(sigusr1_handler(stream));
+
+    let stream = signal(SignalKind::from_raw(nix::libc::SIGUSR2))?;
+    tokio::spawn(sigusr2_handler(stream));
 
     Ok(())
 }
