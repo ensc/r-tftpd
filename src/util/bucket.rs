@@ -77,7 +77,7 @@ mod test {
 		{
 		    let g4 = bucket.acquire();
 		    assert_eq!(bucket.level(), 0);
-		    assert!(!g4.is_some());
+		    assert!(g4.is_none());
 		}
 
 		assert_eq!(bucket.level(), 0);

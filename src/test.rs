@@ -146,7 +146,10 @@ async fn run_test(ip: std::net::IpAddr)
     let listen = std::net::UdpSocket::bind(addr).unwrap();
     let addr = listen.local_addr().unwrap();
 
-    http_server.as_mut().map(|s| s.wait_for_ready());
+    #[allow(clippy::option_map_unit_fn)]
+    {
+	http_server.as_mut().map(|s| s.wait_for_ready());
+    }
 
     let h_server = tokio::task::spawn(timeout(Duration::from_secs(5),
 					      run(env, Either::B(listen.into()))));
