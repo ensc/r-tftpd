@@ -97,9 +97,15 @@ impl CacheInfo {
 	})
     }
 
+    pub fn get_expiration_tm(&self, max_lt: Duration) -> Instant {
+	match (self.not_after, self.local_time + max_lt) {
+	    (None, tm)		=> tm,
+	    (Some(a), b)	=> a.min(b),
+	}
+    }
+
     pub fn is_outdated(&self, reftm: Instant, max_lt: Duration) -> bool {
-	self.not_after.map(|t| t < reftm).unwrap_or(false) ||
-	    reftm.checked_duration_since(self.local_time).map(|d| d > max_lt).unwrap_or(false)
+	self.get_expiration_tm(max_lt) <= reftm
     }
 }
 
