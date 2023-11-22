@@ -605,31 +605,26 @@ impl CacheImpl {
 	}
     }
 
+    /// Removes cache entries which are older than `max_lt`.
+    ///
+    /// Returns the number of remaining cache entries.
     pub fn gc_outdated(&mut self, max_lt: Duration) -> usize {
+	let now = Instant::now();
 	let mut outdated = Vec::new();
-	let now = Time::now();
 	let mut cnt = 0;
 
 	for (key, e) in &self.entries {
-	    cnt += 1;
-
-	    let entry = match e.try_read() {
-		Ok(e)	=> e,
-		_	=> continue,
-	    };
-
-	    if entry.is_outdated(now.mono, max_lt) {
-		outdated.push(key.clone());
+	    match e.try_read().map(|v| v.is_outdated(now, max_lt)) {
+		Ok(true)	=> outdated.push(key.clone()),
+		_		=> cnt += 1,
 	    }
 	}
 
-	let mut rm_cnt = 0;
+	let rm_cnt = outdated.len();
 
 	for e in outdated {
 	    debug!("gc: removing outdated {}", e);
 	    self.entries.remove(&e);
-	    cnt -= 1;
-	    rm_cnt += 1;
 	}
 
 	if rm_cnt > 0 {
