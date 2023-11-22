@@ -138,6 +138,8 @@ mod test {
 
 	//println!("e={e:?}");
 
+	assert_eq!(e.get_expiration_tm(Duration::from_secs(10)),
+		   e.local_time + Duration::from_secs(10));
 	assert!(!e.is_outdated(now.mono,  Duration::from_secs(10)));
 	assert!( e.is_outdated(tm_20,     Duration::from_secs(10)));
 
@@ -154,6 +156,8 @@ mod test {
 
 	//println!("e={e:?}");
 
+	assert_eq!(e.get_expiration_tm(Duration::from_secs(100)),
+		   now.mono + Duration::from_secs(23));
 	assert!(!e.is_outdated(now.mono, Duration::from_secs(100)));
 	assert!(!e.is_outdated(tm_20,    Duration::from_secs(100)));
 	assert!( e.is_outdated(tm_50,    Duration::from_secs(100)));
@@ -171,6 +175,11 @@ mod test {
 
 	//println!("e={e:?}");
 
+	assert_eq!(e.get_expiration_tm(Duration::from_secs(100_000)),
+		   e.local_time + Duration::from_secs(12 * 3600));
+	assert_eq!(e.get_expiration_tm(Duration::from_secs(100)),
+		   e.local_time + Duration::from_secs(100));
+
 	assert!(!e.is_outdated(now.mono, Duration::from_secs(100_000)));
 	assert!(!e.is_outdated(tm_20,    Duration::from_secs(100_000)));
 	assert!( e.is_outdated(tm_1d,    Duration::from_secs(100_000)));
@@ -185,6 +194,9 @@ mod test {
 	};
 
 	//println!("e={e:?}");
+
+	assert_eq!(e.get_expiration_tm(Duration::from_secs(100_000)),
+		   e.local_time + Duration::from_secs(100_000));
 
 	assert!(!e.is_outdated(now.mono, Duration::from_secs(100_000)));
     }
