@@ -59,6 +59,8 @@ workflow:
 
   artifacts:
     when: always
+    paths:
+      - Cargo.lock
     reports:
       coverage_report:
         coverage_format: cobertura
