@@ -512,7 +512,6 @@ struct CacheImpl {
     tmpdir:	std::path::PathBuf,
     entries:	HashMap<url::Url, Entry>,
     client:	Arc<reqwest::Client>,
-    is_dirty:	bool,
     refcnt:	u32,
 
     abort_ch:	Option<tokio::sync::watch::Sender<()>>,
@@ -530,7 +529,6 @@ impl CacheImpl {
 	    tmpdir:	std::env::temp_dir(),
 	    entries:	HashMap::new(),
 	    client:	Arc::new(reqwest::Client::new()),
-	    is_dirty:	false,
 	    abort_ch:	None,
 	    refcnt:	0,
 	    gc:		None,
@@ -551,10 +549,7 @@ impl CacheImpl {
 
     pub fn lookup_or_create(&mut self, key: &url::Url) -> Entry {
 	match self.entries.get(key) {
-	    Some(v)	=> {
-		self.is_dirty = true;
-		v.clone()
-	    },
+	    Some(v)	=> v.clone(),
 	    None	=> self.create(key),
 	}
     }
@@ -564,15 +559,14 @@ impl CacheImpl {
     }
 
     pub fn replace(&mut self, key: &url::Url, entry: &Entry) {
-	self.is_dirty = true;
 	self.entries.insert(key.clone(), entry.clone());
     }
 
     pub fn remove(&mut self, key: &url::Url) {
-	self.is_dirty = true;
 	self.entries.remove(key);
     }
 
+    /// Removes the `num` oldest cache entries
     pub fn gc_oldest(&mut self, mut num: usize) {
 	if num == 0 {
 	    return;
@@ -656,14 +650,12 @@ async fn gc_runner(props: GcProperties, mut abort_ch: tokio::sync::watch::Receiv
 	    let cache = CACHE.try_write();
 
 	    match cache {
-		Ok(mut cache) if cache.is_dirty	=> {
+		Ok(mut cache) if !cache.is_empty()	=> {
 		    let cache_cnt = cache.gc_outdated(props.max_lifetime);
 
 		    if cache_cnt > props.max_elements {
 			cache.gc_oldest(props.max_elements - cache_cnt)
 		    }
-
-		    cache.is_dirty = false;
 
 		    props.sleep
 		}
