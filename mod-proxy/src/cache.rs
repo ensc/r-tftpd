@@ -648,6 +648,8 @@ pub struct GcProperties {
 }
 
 async fn gc_runner(props: GcProperties, mut abort_ch: tokio::sync::watch::Receiver<()>) {
+    const RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(1);
+
     loop {
 	use std::sync::TryLockError;
 
@@ -667,7 +669,7 @@ async fn gc_runner(props: GcProperties, mut abort_ch: tokio::sync::watch::Receiv
 		    props.sleep
 		}
 		Ok(_)				=> props.sleep,
-		Err(TryLockError::WouldBlock)	=> std::time::Duration::from_secs(1),
+		Err(TryLockError::WouldBlock)	=> RETRY_DELAY,
 		Err(e)				=> {
 		    error!("cache gc failed with {:?}", e);
 		    break;
