@@ -216,7 +216,10 @@ async fn run_test(ip: std::net::IpAddr)
 }
 
 // switching tokio runtime between tests breaks the Cache singleton
-static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+lazy_static::lazy_static! {
+    static ref TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::new(());
+}
+
 static LOG_LOCK: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
 
 pub fn init_logging() {
@@ -234,7 +237,7 @@ pub fn init_logging() {
 
 #[tokio::test]
 async fn test_ipv4() {
-    let _g = TEST_LOCK.lock().unwrap();
+    let _g = TEST_LOCK.lock().await;
 
     init_logging();
 
@@ -243,7 +246,7 @@ async fn test_ipv4() {
 
 #[tokio::test]
 async fn test_ipv6() {
-    let _g = TEST_LOCK.lock().unwrap();
+    let _g = TEST_LOCK.lock().await;
 
     init_logging();
 
