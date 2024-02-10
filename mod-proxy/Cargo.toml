@@ -2,6 +2,9 @@
 name = "r-tftpd-proxy"
 version = "0.1.0"
 edition = "2021"
+description = "Helper module which implements http proxy support for r-tftpd"
+repository = "https://gitlab-ext.sigma-chemnitz.de/ensc/r-tftpd"
+license = "GPL-3.0-or-later"
 
 [features]
 legacy_rust_175 = []
