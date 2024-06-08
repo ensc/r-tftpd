@@ -4,6 +4,7 @@ use super::time::TimeDelta;
 
 pub trait HttpHeader {
     fn as_system_time(&self, name: reqwest::header::HeaderName) -> Result<Option<SystemTime>>;
+    #[allow(dead_code)]
     fn as_u64(&self, name: reqwest::header::HeaderName) -> Result<Option<u64>>;
 
     fn as_time_delta(&self, reftm: SystemTime, name: reqwest::header::HeaderName) -> Result<Option<TimeDelta>> {
