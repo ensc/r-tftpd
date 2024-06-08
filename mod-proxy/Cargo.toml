@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-legacy_rust_166 = []
+legacy_rust_175 = []
 
 [dependencies]
 reqwest = { version  = "*", default-features = false, features = ["default-tls", "gzip", "brotli", "deflate", "socks"] }
