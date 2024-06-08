@@ -8,7 +8,7 @@ DEFAULT_FEATURES ?= \
 	$(if ${RUST175_COMPAT},legacy_rust_175) \
 
 CARGO_FILES = \
-	.cargo/config \
+	.cargo/config.toml \
 	Cargo.toml \
 
 srcdir = .
