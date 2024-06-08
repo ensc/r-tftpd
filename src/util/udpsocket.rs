@@ -205,7 +205,7 @@ impl UdpSocket {
 	    ..Default::default()
 	};
 
-	for msg in recv.cmsgs() {
+	for msg in recv.cmsgs()? {
 	    use socket::ControlMessageOwned as C;
 
 	    match msg {
