@@ -1,11 +1,11 @@
 IS_RELEASE ?=
 IS_OFFLINE ?=
 HAS_PROXY ?= t
-RUST166_COMPAT ?=
+RUST175_COMPAT ?=
 
 DEFAULT_FEATURES ?= \
 	$(if $(filter-out n,${HAS_PROXY}),proxy) \
-	$(if ${RUST166_COMPAT},legacy_rust_166) \
+	$(if ${RUST175_COMPAT},legacy_rust_175) \
 
 CARGO_FILES = \
 	.cargo/config \
@@ -30,17 +30,13 @@ include mk/grcov.mk
 
 include contrib/Makefile.mk
 
-PRECISE_PKG_166 = \
-	clap@4.3.24 \
-	clap_lex@0.5.0 \
-	anstyle@1.0.2 \
-	anstyle-parse@0.2.1 \
+PRECISE_PKG_175 =
 
-update_166:	.cargo-update-precise-pre
-	$(call cargo_update_precise,${PRECISE_PKG_166})
+update_175:	.cargo-update-precise-pre
+	$(call cargo_update_precise,${PRECISE_PKG_175})
 
 update-compat:	.cargo-update-precise-pre
-update-compat:	$(if ${RUST166_COMPAT},update_166)
+update-compat:	$(if ${RUST175_COMPAT},update_175)
 
 install:	install-fixup
 
