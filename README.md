@@ -49,9 +49,15 @@ Options:
 
 ## build
 
-```
+```sh
 make
 cargo build
+```
+
+or
+
+```sh
+cargo install r-tftpd
 ```
 
 see [r-tftp.spec](file://contrib/rust-r-tftpd.spec) for ways how to
@@ -59,7 +65,7 @@ customize it by using makefile variables.
 
 ## standalone
 
-```
+```sh
 cd /var/lib/tftpboot && r-tftpd --port 1234
 ```
 
