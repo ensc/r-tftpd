@@ -11,6 +11,10 @@ use http::Time;
 use crate::{ Result, Error };
 use crate::util::pretty_dump_wrap as pretty;
 
+const READ_TIMEOUT:    std::time::Duration = std::time::Duration::from_secs(30);
+const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+const KEEPALIVE:       std::time::Duration = std::time::Duration::from_secs(300);
+
 lazy_static::lazy_static!{
     static ref CACHE: std::sync::RwLock<CacheImpl> = std::sync::RwLock::new(CacheImpl::new());
 }
@@ -525,10 +529,17 @@ pub enum LookupResult {
 
 impl CacheImpl {
     fn new() -> Self {
+        let client = reqwest::Client::builder()
+            .read_timeout(READ_TIMEOUT)
+            .connect_timeout(CONNECT_TIMEOUT)
+            .tcp_keepalive(KEEPALIVE)
+            .build()
+            .unwrap();
+
 	Self {
 	    tmpdir:	std::env::temp_dir(),
 	    entries:	HashMap::new(),
-	    client:	Arc::new(reqwest::Client::new()),
+	    client:	Arc::new(client),
 	    abort_ch:	None,
 	    refcnt:	0,
 	    gc:		None,
