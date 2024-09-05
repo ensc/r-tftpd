@@ -70,3 +70,9 @@ impl Clone for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+impl From<tokio::time::error::Elapsed> for Error {
+    fn from(_: tokio::time::error::Elapsed) -> Self {
+        Self::Timeout
+    }
+}
