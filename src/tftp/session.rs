@@ -9,6 +9,8 @@ use crate::util::{ SocketAddr, UdpSocket };
 use super::{ Request, RequestError, Datagram, Oack, Xfer, SequenceId,
 	     SessionStats as Stats, SessionDirection as Direction };
 
+const FILL_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
+
 pub struct Session<'a> {
     remote:	SocketAddr,
     sock:	UdpSocket,
@@ -301,7 +303,7 @@ impl <'a> Session<'a> {
 	unsafe { buf.set_len(GENERIC_PKT_SZ) };
 
 	loop {
-	    match xfer.fill_window(seq, &mut fetcher).await? {
+	    match tokio::time::timeout(FILL_TIMEOUT, xfer.fill_window(seq, &mut fetcher)).await?? {
 		0	=> {},
 		v	=> {
 		    debug!("retransmitting {:?}+", seq);
