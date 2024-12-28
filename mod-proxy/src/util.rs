@@ -1,6 +1,6 @@
 pub struct PrettyDumpWrap<'a, T: PrettyDump>(&'a T);
 
-impl <'a, T: PrettyDump> std::fmt::Display for PrettyDumpWrap<'a, T> {
+impl <T: PrettyDump> std::fmt::Display for PrettyDumpWrap<'_, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.pretty_dump(f)
     }

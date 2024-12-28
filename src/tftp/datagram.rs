@@ -46,7 +46,7 @@ impl TftpSlice for &[u8]
 
     fn get_u16(&self, idx: usize) -> u16
     {
-	(self[idx] as u16) << 8 | (self[idx + 1] as u16)
+	((self[idx] as u16) << 8) | (self[idx + 1] as u16)
     }
 
     fn get_sequence_id(&self, idx: usize) -> SequenceId

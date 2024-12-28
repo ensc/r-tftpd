@@ -70,6 +70,8 @@ impl <'a> Block<'a> {
 	self.data.get_inner(self.len as usize)
     }
 
+    // TODO: fix the lifetime problems...
+    #[allow(clippy::needless_lifetimes)]
     pub async fn fill<'b>(&mut self, fetcher: &'b mut Fetcher) -> Result<usize>
 //    where
 //	'b: 'a
@@ -199,6 +201,8 @@ impl <'a> Xfer<'a> {
 	Ok(())
     }
 
+    // TODO: fix the lifetime problems...
+    #[allow(clippy::needless_lifetimes)]
     pub async fn fill_window<'b>(&mut self, blk_id: SequenceId, fetcher: &'b mut Fetcher) -> Result<usize>
 //    where
 //	'b: 'a
