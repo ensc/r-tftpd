@@ -1,11 +1,11 @@
 IS_RELEASE ?=
 IS_OFFLINE ?=
 HAS_PROXY ?= t
-RUST175_COMPAT ?=
+RUST179_COMPAT ?=
 
 DEFAULT_FEATURES ?= \
 	$(if $(filter-out n,${HAS_PROXY}),proxy) \
-	$(if ${RUST175_COMPAT},legacy_rust_175) \
+	$(if ${RUST179_COMPAT},legacy_rust_179) \
 
 CARGO_FILES = \
 	.cargo/config.toml \
@@ -30,13 +30,13 @@ include mk/grcov.mk
 
 include contrib/Makefile.mk
 
-PRECISE_PKG_175 =
+PRECISE_PKG_179 =
 
-update_175:	.cargo-update-precise-pre
-	$(call cargo_update_precise,${PRECISE_PKG_175})
+update_179:	.cargo-update-precise-pre
+	$(call cargo_update_precise,${PRECISE_PKG_179})
 
 update-compat:	.cargo-update-precise-pre
-update-compat:	$(if ${RUST175_COMPAT},update_175)
+update-compat:	$(if ${RUST179_COMPAT},update_179)
 
 install:	install-fixup
 

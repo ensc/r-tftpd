@@ -8,7 +8,7 @@ homepage = "https://github.com/ensc/r-tftpd"
 license = "GPL-3.0-or-later"
 
 [features]
-legacy_rust_175 = []
+legacy_rust_179 = []
 
 [dependencies]
 reqwest = { version  = "*", default-features = false, features = ["default-tls", "gzip", "brotli", "deflate", "socks"] }
