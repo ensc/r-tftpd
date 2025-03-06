@@ -24,8 +24,8 @@ pub enum Error {
     #[error("failed to parse uri")]
     UriParse,
 
-    #[error("file is missing")]
-    FileMissing,
+    #[error("file '{0}' is missing")]
+    FileMissing(String),
 
     #[error("internal error: {0}")]
     Internal(&'static str),
@@ -54,7 +54,7 @@ impl Clone for Error {
             Self::RequestError(arg0) => Self::RequestError(arg0.clone()),
             Self::InvalidPathName => Self::InvalidPathName,
             Self::UriParse => Self::UriParse,
-            Self::FileMissing => Self::FileMissing,
+            Self::FileMissing(arg0) => Self::FileMissing(arg0.clone()),
             Self::Internal(arg0) => Self::Internal(arg0),
             Self::Timeout => Self::Timeout,
             Self::BadAck => Self::BadAck,

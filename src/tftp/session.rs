@@ -83,8 +83,10 @@ impl <'a> Session<'a> {
 		msg.push(0);
 	    },
 
-	    Error::FileMissing		=> {
+	    Error::FileMissing(d)		=> {
 		msg.extend([0, 1]);
+		msg.extend(d.to_string().as_bytes());
+		msg.push(0);
 	    },
 
 	    Error::TooMuchClients	=> {
