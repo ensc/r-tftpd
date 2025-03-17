@@ -85,7 +85,7 @@ impl <'a> Session<'a> {
 
 	    Error::FileMissing(d)		=> {
 		msg.extend([0, 1]);
-		msg.extend(d.to_string().as_bytes());
+		msg.extend(d.display().to_string().as_bytes());
 		msg.push(0);
 	    },
 

@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use thiserror;
 
 #[derive(thiserror::Error, Debug)]
@@ -25,7 +27,7 @@ pub enum Error {
     UriParse,
 
     #[error("file '{0}' is missing")]
-    FileMissing(String),
+    FileMissing(Box<Path>),
 
     #[error("internal error: {0}")]
     Internal(&'static str),

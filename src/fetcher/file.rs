@@ -25,7 +25,7 @@ impl File {
 
 	self.file = match std::fs::File::open(&self.path) {
 	    Err(e) if e.kind() == std::io::ErrorKind::NotFound	=> {
-			return Err(Error::FileMissing(self.path.display().to_string()))
+			return Err(Error::FileMissing(self.path.clone().into_boxed_path()))
 		},
 	    Err(e)	=> return Err(Error::Io(e)),
 	    Ok(f)	=> Some(f),
