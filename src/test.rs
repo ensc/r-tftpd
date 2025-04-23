@@ -38,6 +38,7 @@ enum FileSpec {
     Link(&'static str, &'static str, &'static str),
 
     TestPlain(&'static str),
+    #[allow(dead_code)]
     TestProxy(&'static str, &'static str, &'static str),
 }
 
