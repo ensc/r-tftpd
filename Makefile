@@ -41,9 +41,13 @@ update-compat:	$(if ${RUST179_COMPAT},update_179)
 install:	install-fixup
 
 install-fixup:	cargo-install
+ifeq (${bindir},${sbindir})
+	@:
+else
 	${MKDIR_P} ${DESTDIR}${sbindir}
 	mv ${DESTDIR}${bindir}/r-tftpd ${DESTDIR}${sbindir}/
 	-@rmdir ${DESTDIR}${bindir}
+endif
 
 clean:		clean-common
 
