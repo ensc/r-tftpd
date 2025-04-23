@@ -11,6 +11,25 @@ use super::{ Request, RequestError, Datagram, Oack, Xfer, SequenceId,
 
 const FILL_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(300);
 
+trait TftpErrorCode {
+    /// Returns the error code for public errors.
+    ///
+    /// Private errors which might reveal non-public information should return
+    /// `None`
+    fn tftp_error_code(&self) -> Option<[u8; 2]>;
+}
+
+impl TftpErrorCode for Error {
+    fn tftp_error_code(&self) -> Option<[u8; 2]> {
+        match self {
+            Self::TooMuchClients |
+            Self::RequestError(_)	=> Some([0, 4]),
+            Self::FileMissing(_)	=> Some([0, 1]),
+            _				=> Some([0, 0]),
+        }
+    }
+}
+
 pub struct Session<'a> {
     remote:	SocketAddr,
     sock:	UdpSocket,
@@ -78,29 +97,16 @@ impl <'a> Session<'a> {
 
 	msg.extend([0, 5]);
 
-	match e {
-	    Error::RequestError(d)	=> {
-		msg.extend([0, 4]);
-		msg.extend(d.to_string().as_bytes());
-		msg.push(0);
-	    },
+        match e.tftp_error_code() {
+            Some(code)	=> {
+                msg.extend(code);
+                msg.extend(e.to_string().as_bytes());
+            }
 
-	    Error::FileMissing		=> {
-		msg.extend([0, 1]);
-	    },
+            None	=> msg.extend([0, 0]),
+        }
 
-	    Error::TooMuchClients	=> {
-		msg.extend([0, 4]);
-		msg.extend(b"too much clients");
-		msg.push(0);
-	    },
-
-	    _				=> {
-		msg.extend([0, 0]);
-	    },
-	};
-
-	msg.push(0);
+	msg.push(0);            // terminates error message
 
 	self.send(&msg).await
     }
