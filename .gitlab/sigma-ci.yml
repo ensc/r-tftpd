@@ -15,7 +15,7 @@ workflow:
     - when: always
 
 .build:
-  image: $CI_REGISTRY/docker/sigma/ci/fedora:38
+  image: $CI_REGISTRY/docker/sigma/ci/fedora:41
   variables:
     CARGO_HOME: $CI_PROJECT_DIR/.home/cargo
     RUSTUP_HOME: $CI_PROJECT_DIR/.home/rustup
