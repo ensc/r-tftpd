@@ -40,6 +40,9 @@ enum FileSpec {
     TestPlain(&'static str),
     #[allow(dead_code)]
     TestProxy(&'static str, &'static str, &'static str),
+
+    Missing(&'static str),
+    MissingLink(&'static str, &'static str),
 }
 
 impl FileSpec {
@@ -52,15 +55,22 @@ impl FileSpec {
 
 	    (Self::TestPlain(_), _) |
 	    (Self::TestProxy(_, _, _), _)	=> Ok(()),
+
+            (Self::Missing(_), _)		=> Ok(()),
+	    (Self::MissingLink(name, dst), Some(host))	=>
+		std::os::unix::fs::symlink(format!("http://{host}/{dst}"), dir.join(name)),
+	    (Self::MissingLink(_, _), _)	=> Ok(()),
 	}
     }
 
     pub const fn is_available(&self) -> bool {
 	match self {
 	    Self::Content(_, _) |
-	    Self::TestPlain(_)		=> true,
+	    Self::TestPlain(_) |
+	    Self::Missing(_)		=> true,
 	    Self::Link(_, _, _) |
-	    Self::TestProxy(_, _, _)	=> cfg!(feature = "proxy"),
+	    Self::TestProxy(_, _, _) |
+	    Self::MissingLink(_, _)	=> cfg!(feature = "proxy"),
 	}
     }
 
@@ -69,7 +79,9 @@ impl FileSpec {
 	    Self::Content(name, _) |
 	    Self::Link(name, _, _) |
 	    Self::TestPlain(name) |
-	    Self::TestProxy(name, _, _)		=> name,
+	    Self::TestProxy(name, _, _)	|
+	    Self::Missing(name) |
+	    Self::MissingLink(name, _)	=> name,
 	}
     }
 
@@ -78,7 +90,20 @@ impl FileSpec {
 	    Self::Content(name, _) |
 	    Self::Link(_, name, _) |
 	    Self::TestPlain(name) |
-	    Self::TestProxy(_, name, _)		=> name,
+	    Self::TestProxy(_, name, _) |
+	    Self::Missing(name) |
+	    Self::MissingLink(_, name)	=> name,
+	}
+    }
+
+    pub const fn expected_fail(&self) -> bool {
+	match self {
+	    Self::Content(_, _) |
+	    Self::Link(_, _, _) |
+	    Self::TestPlain(_) |
+	    Self::TestProxy(_, _, _)	=> false,
+	    Self::Missing(_) |
+	    Self::MissingLink(_, _)	=> true,
 	}
     }
 }
@@ -108,6 +133,9 @@ const FILES: &[FileSpec] = &[
     FileSpec::TestProxy("proxy_511",    "input_511",    "+nocache"),
     FileSpec::TestProxy("proxy_511",    "input_511",    ""),
     FileSpec::TestProxy("proxy_511",    "input_511",    ""),
+
+    FileSpec::Missing("non-existing"),
+    FileSpec::MissingLink("prooxy_non-existing", "non-existing"),
 ];
 
 async fn run_test(ip: std::net::IpAddr)
@@ -173,16 +201,17 @@ async fn run_test(ip: std::net::IpAddr)
 		.await
 		.expect("run-tftp failed");
 
-	    if !client.stderr.is_empty() {
-		warn!("run-tftp stderr:\n{}", String::from_utf8_lossy(&client.stderr));
-	    }
+            if !f.expected_fail() {
+	        if !client.stderr.is_empty() {
+		    warn!("run-tftp stderr:\n{}", String::from_utf8_lossy(&client.stderr));
+	        }
 
-	    if !client.stdout.is_empty() {
-		debug!("run-tftp stdout:\n{}", String::from_utf8_lossy(&client.stdout));
-	    }
+	        if !client.stdout.is_empty() {
+		    debug!("run-tftp stdout:\n{}", String::from_utf8_lossy(&client.stdout));
+	        }
+            }
 
 	    match client.status.code() {
-		Some(0)		=> {},
 		Some(23)	=> {
 		    println!("run-tftp #{} skipped", instance);
 		    break;
@@ -191,7 +220,11 @@ async fn run_test(ip: std::net::IpAddr)
 		    do_abort = true;
 		    break;
 		}
-		_		=> panic!("run-tftpd failed: {:?}", client),
+
+		Some(0) if f.expected_fail()	=> panic!("run-tftpd succeeded unexpectedly"),
+		Some(0)				=> {},
+                _ if f.expected_fail()		=> {},
+		_				=> panic!("run-tftpd failed: {:?}", client),
 	    }
 
 	    unsafe { kill(getpid(), nix::libc::SIGUSR1) };
