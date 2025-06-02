@@ -213,7 +213,7 @@ async fn run_test(ip: std::net::IpAddr)
 
 	    match client.status.code() {
 		Some(23)	=> {
-		    println!("run-tftp #{} skipped", instance);
+		    println!("run-tftp #{instance} skipped");
 		    break;
 		},
 		Some(42)	=> {
@@ -224,7 +224,7 @@ async fn run_test(ip: std::net::IpAddr)
 		Some(0) if f.expected_fail()	=> panic!("run-tftpd succeeded unexpectedly"),
 		Some(0)				=> {},
                 _ if f.expected_fail()		=> {},
-		_				=> panic!("run-tftpd failed: {:?}", client),
+		_				=> panic!("run-tftpd failed: {client:?}"),
 	    }
 
 	    unsafe { kill(getpid(), nix::libc::SIGUSR1) };

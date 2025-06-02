@@ -275,7 +275,7 @@ mod test {
     fn verify_data(xfer: &Xfer, start_idx: SequenceId, cnt: u16)
     {
 	for (idx, d) in xfer.iter().enumerate() {
-	    println!("idx={}, d={:?}", idx, d);
+	    println!("idx={idx}, d={d:?}");
 	    match d {
 		Datagram::Data(id, data)	=> {
 		    assert_eq!(id, start_idx + idx as u16);

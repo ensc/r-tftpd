@@ -64,7 +64,7 @@ impl crate::util::PrettyDump for reqwest::Response {
         f.write_fmt(format_args!("{} {}", self.status(), self.url()))?;
 
 	if let Some(sz) = self.content_length() {
-	    f.write_fmt(format_args!(" ({})", sz))?;
+	    f.write_fmt(format_args!(" ({sz})"))?;
 	}
 
 	Ok(())
@@ -79,7 +79,7 @@ impl crate::util::PrettyDump for reqwest::header::HeaderValue {
 
 impl crate::util::PrettyDump for u64 {
     fn pretty_dump(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self))
+        f.write_fmt(format_args!("{self}"))
     }
 }
 

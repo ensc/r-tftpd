@@ -87,7 +87,7 @@ impl crate::util::PrettyDump for State {
             State::None =>
 		f.write_str("no state"),
             State::Error(e) =>
-		f.write_fmt(format_args!("error {:?}", e)),
+		f.write_fmt(format_args!("error {e:?}")),
             State::Init { response } =>
 		f.write_fmt(format_args!("INIT({})", pretty(response))),
             State::HaveMeta { response, cache_info, file_size, stats } =>
