@@ -14,10 +14,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # test 1.79 because this is the rust version in RHEL 8
+    # test 1.84 because this is the rust version in RHEL 8
     strategy:
       matrix:
-        toolchain: [ "stable", "nightly", "1.79" ]
+        toolchain: [ "stable", "nightly", "1.84" ]
 
     steps:
     - uses: actions/checkout@v3
@@ -28,11 +28,9 @@ jobs:
         packages: lighttpd
 
     - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
         toolchain: ${{ matrix.toolchain }}
-        override: true
 
     - name: Prepare
       shell: bash
@@ -44,18 +42,16 @@ jobs:
         make update-compat
 
     - name: Run build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: "--all-targets --locked --tests --benches --workspace --release"
+      run:
+        cargo build --all-targets --locked --tests --benches --workspace --release
 
     - name: Run tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
+      run:
+        cargo test
 
     - name: Upload Cargo.lock
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
+      if: ${{ matrix.toolchain  == 'stable' }}
       with:
         name: Cargo.lock
         path: Cargo.lock

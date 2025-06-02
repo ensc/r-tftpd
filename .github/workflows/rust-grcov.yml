@@ -13,6 +13,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      CARGO_TARGET_DIR: "/var/tmp/.cargo-target"
+      X_CI_PROFILE_DIRECTORY: "/var/tmp/.profraw"
+
     steps:
     - uses: actions/checkout@v3
 
@@ -22,30 +26,44 @@ jobs:
         packages: lighttpd
 
     - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@master
       with:
-        profile: minimal
         toolchain: nightly
-        override: true
+        components: llvm-tools
+
+    - name: build grcov
+      run: cargo install grcov
 
     - name: Prepare
       run: make prepare
 
     - name: Run tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --no-fail-fast --all-targets --workspace
       env:
         CARGO_INCREMENTAL: '0'
-        RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-        RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+        RUSTFLAGS: '-Cinstrument-coverage'
+        LLVM_PROFILE_FILE: "/var/tmp/.profraw/tests-%p-%m.profraw"
+      run: cargo test --no-fail-fast --all-targets --workspace
 
-    - id: coverage
-      uses: actions-rs/grcov@v0.1
+    - name: build coverage data
+      run:
+        mkdir -p "${CARGO_TARGET_DIR}/coverage/" &&
+        grcov
+        "${X_CI_PROFILE_DIRECTORY}"
+        --binary-path "${CARGO_TARGET_DIR}/debug"
+        --llvm
+        --branch
+        -s "."
+        -o "${CARGO_TARGET_DIR}/coverage/"
+        --keep-only '*'
+        --ignore "${CARGO_HOME}/**"
+        --ignore "${CARGO_TARGET_DIR}/**"
+        --ignore-not-existing
+        --output-types html,cobertura,lcov
+        --commit-sha "${CI_COMMIT_SHA}"
+        ${CI_COMMIT_BRANCH:+--vcs-branch "${CI_COMMIT_BRANCH}"}
 
     - name: Coveralls upload
-      uses: coverallsapp/github-action@master
+      uses: coverallsapp/github-action@v2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ${{ steps.coverage.outputs.report }}
+        file: "${{ env.CARGO_TARGET_DIR }}/coverage/lcov"
