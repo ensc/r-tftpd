@@ -7,6 +7,9 @@ pub use udpsocket::{ UdpSocket,
 		     RecvInfo as UdpRecvInfo };
 pub use bucket::Bucket;
 
+mod uninit;
+pub use uninit::*;
+
 lazy_static::lazy_static!{
     pub static ref RUST_FMT: num_format::CustomFormat =
 	num_format::CustomFormat::builder()
