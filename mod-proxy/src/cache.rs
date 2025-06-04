@@ -1,4 +1,5 @@
 use std::{os::unix::prelude::AsRawFd, time::Instant};
+use std::mem::MaybeUninit;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::collections::HashMap;
@@ -9,7 +10,7 @@ use super::http;
 use http::Time;
 
 use crate::{ Result, Error };
-use crate::util::pretty_dump_wrap as pretty;
+use crate::util::{pretty_dump_wrap as pretty, AsInit, CopyInit};
 
 const READ_TIMEOUT:    std::time::Duration = std::time::Duration::from_secs(30);
 const CONNECT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
@@ -171,7 +172,7 @@ impl State {
 	}
     }
 
-    fn read_file(file: &std::fs::File, ofs: u64, buf: &mut [u8], max: u64) -> Result<usize> {
+    fn read_file<'a>(file: &std::fs::File, ofs: u64, buf: &'a mut [MaybeUninit<u8>], max: u64) -> Result<&'a [u8]> {
 	use nix::libc;
 
 	assert!(max > ofs);
@@ -189,10 +190,12 @@ impl State {
 	    return Err(std::io::Error::last_os_error().into());
 	}
 
-	Ok(len)
+        assert_eq!(rc as usize, len);
+
+	Ok(unsafe { buf[..rc as usize].assume_init() })
     }
 
-    pub fn read(&self, ofs: u64, buf: &mut [u8]) -> Result<Option<usize>> {
+    pub fn read<'a>(&self, ofs: u64, buf: &'a mut [MaybeUninit<u8>]) -> Result<Option<&'a [u8]>> {
 	match &self {
 	    State::Downloading { file, file_pos, .. } if ofs < *file_pos	=> {
 		Self::read_file(file, ofs, buf, *file_pos)
@@ -202,7 +205,7 @@ impl State {
 		Self::read_file(file, ofs, buf, *file_size)
 	    }
 
-	    State::Complete { file_size, .. } if ofs == *file_size	=> Ok(0),
+	    State::Complete { file_size, .. } if ofs == *file_size	=> Ok(&[] as &[u8]),
 
 	    State::Complete { file_size, .. } if ofs >= *file_size	=>
 		Err(Error::Internal("file out-of-bound read")),
@@ -415,28 +418,28 @@ impl EntryData {
 	}
     }
 
-    pub async fn read_some(&mut self, ofs: u64, buf: &mut [u8]) -> Result<usize>
+    pub async fn read_some<'a>(&mut self, ofs: u64, buf: &'a mut [MaybeUninit<u8>]) -> Result<&'a [u8]>
     {
 	use std::io::Write;
 
 	trace!("state={:?}, ofs={}, #buf={}", self.state, ofs, buf.len());
 
-	async fn fetch(response: &mut reqwest::Response, file: &mut std::fs::File,
-		       buf: &mut [u8], stats: &mut Stats) -> Result<(usize, usize)> {
+	async fn fetch<'a>(response: &mut reqwest::Response, file: &mut std::fs::File,
+		       buf: &'a mut [MaybeUninit<u8>], stats: &mut Stats) -> Result<(&'a[u8], usize)> {
 	    match stats.chunk(response).await? {
 		Some(data)	=> {
 		    let len = buf.len().min(data.len());
+                    let buf = buf[0..len].write_copy_of_slice_x(&data.as_ref()[0..len]);
 
-		    buf[0..len].clone_from_slice(&data.as_ref()[0..len]);
 		    file.write_all(&data)?;
 
 		    // TODO: it would be better to do this in State::read_file()
 		    file.flush()?;
 
-		    Ok((len, data.len()))
+		    Ok((buf, data.len()))
 		},
 
-		None		=> Ok((0, 0))
+		None		=> Ok((&[], 0))
 	    }
 	}
 
@@ -444,8 +447,14 @@ impl EntryData {
 	    self.fill_meta().await?;
 	}
 
-	if let Some(sz) = self.state.read(ofs, buf)? {
-	    return Ok(sz);
+	if let Some(data) = self.state.read(ofs, buf)? {
+            // TODO: this workarounds a bogus E0499 error; revisit after polonius
+            let data = {
+                let len = data.len();
+                unsafe { buf[..len].assume_init() }
+            };
+
+	    return Ok(data);
 	}
 
 	match self.state.take("read_some") {

@@ -1,4 +1,7 @@
+use std::mem::MaybeUninit;
+
 use crate::{ Result, Error };
+use crate::util::AsInit;
 
 use super::{ Cache, CacheEntry, CacheEntryData };
 
@@ -150,7 +153,7 @@ impl Uri {
     }
 
     //#[instrument(level = "trace", skip_all, ret)]
-    pub async fn read(&mut self, buf: &mut [u8]) -> Result<usize>
+    pub async fn read<'a>(&mut self, buf: &'a mut [MaybeUninit<u8>]) -> Result<&'a [u8]>
     {
 	assert!(!self.is_eof);
 
@@ -160,7 +163,7 @@ impl Uri {
 	let mut pos = 0;
 
 	while pos < len {
-	    let sz = entry.read_some(self.pos, &mut buf[pos..len]).await?;
+	    let sz = entry.read_some(self.pos, &mut buf[pos..len]).await?.len();
 
 	    if sz == 0 {
 		self.is_eof = true;
@@ -171,7 +174,7 @@ impl Uri {
 	    self.pos += sz as u64;
 	}
 
-	Ok(pos)
+	Ok(unsafe { buf[..pos].assume_init() })
     }
 
     pub fn is_eof(&self) -> bool
