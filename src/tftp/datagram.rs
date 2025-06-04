@@ -1,7 +1,8 @@
+use std::mem::MaybeUninit;
 use std::time::Duration;
 
 use crate::{ Error, Result };
-use crate::util::{ UdpSocket, SocketAddr };
+use crate::util::{ AsInit as _, SocketAddr, UdpSocket };
 use super::{ Request, RequestError as E, RequestResult, SequenceId };
 
 #[derive(Debug)]
@@ -104,10 +105,10 @@ impl <'a> TryFrom<&'a[u8]> for Datagram<'a> {
 
 impl <'a> Datagram<'a> {
     async fn recv_inner(sock: &UdpSocket,
-			buf: &'a mut [u8], exp_addr: &SocketAddr) -> Result<Datagram<'a>>
+			buf: &'a mut [MaybeUninit<u8>], exp_addr: &SocketAddr) -> Result<Datagram<'a>>
     {
 	loop {
-	    let (len, addr) = sock.recvfrom(buf).await?;
+	    let (data, addr) = sock.recvfrom(buf).await?;
 
 	    if &addr != exp_addr {
 		error!("unexpected address: {} vs {}", addr, exp_addr);
@@ -115,12 +116,22 @@ impl <'a> Datagram<'a> {
 		continue;
 	    }
 
-	    return Self::try_from(&buf[0..len])
+            // TODO: this should not be needed but recent borrow checker triggers a bogus
+            //
+            // | error[E0499]: cannot borrow `*buf` as mutable more than once at a time
+            //
+            // else. Revisit after polonius.
+            let data = {
+                let len = data.len();
+                unsafe { buf[..len].assume_init() }
+            };
+
+	    break Self::try_from(data)
 	}
     }
 
     pub async fn recv(sock: &UdpSocket,
-		      buf: &'a mut [u8], exp_addr: &SocketAddr, to: Duration) -> Result<Datagram<'a>>
+		      buf: &'a mut [MaybeUninit<u8>], exp_addr: &SocketAddr, to: Duration) -> Result<Datagram<'a>>
     {
 	use tokio::time::timeout;
 

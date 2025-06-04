@@ -7,6 +7,7 @@ use nix::libc;
 use nix::sys::socket::{self, SockaddrStorage};
 use tokio::io::unix::AsyncFd;
 
+use crate::util::AsInit as _;
 use crate::{ Result, Error };
 
 use super::SocketAddr;
@@ -159,15 +160,16 @@ impl UdpSocket {
 	}
     }
 
-    pub async fn recvfrom(&self, buf: &mut [u8]) -> Result<(usize, SocketAddr)>
+    pub async fn recvfrom<'a>(&self, buf: &'a mut [std::mem::MaybeUninit<u8>]) -> Result<(&'a [u8], SocketAddr)>
     {
 	use nix::Error as E;
+        let buf = unsafe { buf.assume_init() };
 
 	loop {
 	    let mut async_guard = self.get_fd().readable().await?;
 
 	    match socket::recvfrom::<SockaddrStorage>(self.as_raw_fd(), buf) {
-		Ok((sz, Some(addr)))	=> break Ok((sz, addr.try_into()?)),
+		Ok((sz, Some(addr)))	=> break Ok((&buf[..sz], addr.try_into()?)),
 		Ok((_, None))		=> break Err(Error::Internal("no address from recvfrom")),
 		Err(E::EAGAIN)		=> async_guard.clear_ready(),
 		Err(e)			=> break Err(e.into())

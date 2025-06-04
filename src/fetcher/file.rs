@@ -1,6 +1,8 @@
 use crate::{ Error, Result };
+use crate::util::AsInit;
 
 use std::io::Read;
+use std::mem::MaybeUninit;
 
 #[derive(Debug)]
 pub struct File {
@@ -43,13 +45,15 @@ impl File {
 	file.metadata().ok().map(|v| v.len())
     }
 
-    pub async fn read(&mut self, buf: &mut [u8]) -> crate::Result<usize>
+    pub async fn read<'a>(&mut self, buf: &'a mut [MaybeUninit<u8>]) -> crate::Result<&'a [u8]>
     {
 	assert!(!self.is_eof());
 
 	let mut file = self.file.as_ref().unwrap();
 	let mut len = buf.len();
 	let mut pos = 0;
+
+        let buf = unsafe { buf.assume_init() };
 
 	while len > 0 {
 	    let sz = file.read(&mut buf[pos..])?;
@@ -64,7 +68,7 @@ impl File {
 	    pos += sz;
 	}
 
-	Ok(pos)
+	Ok(&buf[..pos])
     }
 
     pub fn read_mmap(&mut self, _cnt: usize) -> crate::Result<&[u8]>

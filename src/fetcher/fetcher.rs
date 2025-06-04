@@ -1,3 +1,5 @@
+use std::mem::MaybeUninit;
+
 #[derive(Debug)]
 pub enum Fetcher {
     File(Box<super::File>),
@@ -53,7 +55,7 @@ impl Fetcher {
     }
 
     //#[instrument(level = "trace", skip(buf), ret)]
-    pub async fn read(&mut self, buf: &mut [u8]) -> crate::Result<usize>
+    pub async fn read<'a>(&mut self, buf: &'a mut [MaybeUninit<u8>]) -> crate::Result<&'a [u8]>
     {
 	match self {
 	    Self::File(f)	=> f.read(buf).await,

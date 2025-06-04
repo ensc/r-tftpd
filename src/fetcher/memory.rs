@@ -1,4 +1,7 @@
 use crate::{ Result };
+use std::mem::MaybeUninit;
+
+use crate::util::CopyInit;
 
 #[derive(Debug)]
 pub struct Memory {
@@ -22,15 +25,15 @@ impl Memory {
 	Some(self.buf.len() as u64)
     }
 
-    pub async fn read(&mut self, buf: &mut [u8]) -> crate::Result<usize>
+    pub async fn read<'a>(&mut self, buf: &'a mut [MaybeUninit<u8>]) -> crate::Result<&'a [u8]>
     {
 	let sz = buf.len().min(self.buf.len() - self.pos);
 
-	buf[0..sz].clone_from_slice(&self.buf[self.pos..self.pos + sz]);
+	let buf = buf[0..sz].write_copy_of_slice_x(&self.buf[self.pos..self.pos + sz]);
 
 	self.pos += sz;
 
-	Ok(sz)
+	Ok(buf)
     }
 
     pub fn read_mmap(&mut self, sz: usize) -> crate::Result<&[u8]>
