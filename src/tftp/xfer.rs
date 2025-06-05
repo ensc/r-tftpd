@@ -12,10 +12,7 @@ enum Data<'a> {
 impl Data<'_>
 {
     pub fn alloc(sz: usize) -> Self {
-	let mut data = Vec::with_capacity(sz);
-
-	#[allow(clippy::uninit_vec)]
-	unsafe { data.set_len(sz); }
+	let data = Vec::with_capacity(sz);
 
 	Self::Owned(data)
     }
@@ -77,7 +74,7 @@ impl <'a> Block<'a> {
 //	'b: 'a
     {
 	let sz = match &mut self.data {
-	    Data::Owned(d)	=> fetcher.read(d).await?,
+	    Data::Owned(d)	=> fetcher.read(d.spare_capacity_mut()).await?.len(),
 	    Data::Ref(_)	=> {
 		let data = fetcher.read_mmap(self.get_blksize() as usize)?;
 

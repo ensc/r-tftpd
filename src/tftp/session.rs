@@ -1,4 +1,5 @@
 use std::io::IoSlice;
+use std::mem::MaybeUninit;
 
 const RETRY_CNT: u32 = 5;
 const GENERIC_PKT_SZ: usize = 512;
@@ -175,11 +176,8 @@ impl <'a> Session<'a> {
 	let mut last_id = None;
 	let mut retry_cnt = RETRY_CNT;
 
-	#[allow(clippy::uninit_vec)]
-	unsafe { buf.set_len(alloc_len) };
-
 	loop {
-	    let resp = Datagram::recv(&self.sock, buf.as_mut_slice(), &self.remote, self.timeout).await;
+	    let resp = Datagram::recv(&self.sock, buf.spare_capacity_mut(), &self.remote, self.timeout).await;
 
 	    match resp {
 		Ok(Datagram::Data(id, ..)) if id != seq	=> {
@@ -246,7 +244,7 @@ impl <'a> Session<'a> {
 
 	self.send_oack(oack).await?;
 
-	let mut buf = vec![0u8; GENERIC_PKT_SZ];
+	let mut buf = vec![MaybeUninit::uninit(); GENERIC_PKT_SZ];
 
 	let resp = Datagram::recv(&self.sock, &mut buf, &self.remote, self.timeout).await?;
 
@@ -305,9 +303,6 @@ impl <'a> Session<'a> {
 	let mut is_startup = true;
 	let mut buf = Vec::<u8>::with_capacity(GENERIC_PKT_SZ);
 
-	#[allow(clippy::uninit_vec)]
-	unsafe { buf.set_len(GENERIC_PKT_SZ) };
-
 	loop {
 	    match tokio::time::timeout(FILL_TIMEOUT, xfer.fill_window(seq, &mut fetcher)).await?? {
 		0	=> {},
@@ -332,9 +327,9 @@ impl <'a> Session<'a> {
 		self.send_datagram(d).await?;
 	    }
 
-	    debug_assert!(buf.len() == GENERIC_PKT_SZ);
+            debug_assert_eq!(buf.spare_capacity_mut().len(), GENERIC_PKT_SZ);
 
-	    let resp = Datagram::recv(&self.sock, buf.as_mut_slice(), &self.remote, self.timeout).await;
+	    let resp = Datagram::recv(&self.sock, buf.spare_capacity_mut(), &self.remote, self.timeout).await;
 
 	    match resp {
 		Err(Error::Timeout) if retry > 0    => {
