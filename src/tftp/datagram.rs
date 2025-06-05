@@ -105,7 +105,7 @@ impl <'a> TryFrom<&'a[u8]> for Datagram<'a> {
 
 impl <'a> Datagram<'a> {
     async fn recv_inner(sock: &UdpSocket,
-			buf: &'a mut [MaybeUninit<u8>], exp_addr: &SocketAddr) -> Result<Datagram<'a>>
+			buf: &'a mut [MaybeUninit<u8>], exp_addr: &SocketAddr) -> Result<Self>
     {
 	loop {
 	    let (data, addr) = sock.recvfrom(buf).await?;
@@ -131,7 +131,7 @@ impl <'a> Datagram<'a> {
     }
 
     pub async fn recv(sock: &UdpSocket,
-		      buf: &'a mut [MaybeUninit<u8>], exp_addr: &SocketAddr, to: Duration) -> Result<Datagram<'a>>
+		      buf: &'a mut [MaybeUninit<u8>], exp_addr: &SocketAddr, to: Duration) -> Result<Self>
     {
 	use tokio::time::timeout;
 
