@@ -1,3 +1,8 @@
+#[path = "../../src/util/uninit.rs"]
+mod uninit;
+
+pub use uninit::*;
+
 pub struct PrettyDumpWrap<'a, T: PrettyDump>(&'a T);
 
 impl <T: PrettyDump> std::fmt::Display for PrettyDumpWrap<'_, T> {
