@@ -1,6 +1,6 @@
-use crate::{ Result };
 use std::mem::MaybeUninit;
 
+use crate::Result;
 use crate::util::CopyInit;
 
 #[derive(Debug)]

@@ -1,6 +1,6 @@
 use std::mem::MaybeUninit;
 
-use crate::{ Result, Error };
+use crate::{ Error, Result };
 use crate::util::AsInit;
 
 use super::{ Cache, CacheEntry, CacheEntryData };
