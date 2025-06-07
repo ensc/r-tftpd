@@ -24,6 +24,17 @@ impl Data<'_>
 	    Data::Ref(None)	=> panic!("Data::Ref is None"),
 	}
     }
+
+    pub fn set_len(&mut self, sz: usize) {
+	match self {
+	    Data::Owned(d)	=> unsafe {
+                assert!(sz <= d.capacity());
+                d.set_len(sz);
+            }
+	    Data::Ref(Some(d))	=> assert!(sz <= d.len()),
+	    Data::Ref(None)	=> {}
+	}
+    }
 }
 
 struct Block<'a> {
@@ -58,9 +69,14 @@ impl <'a> Block<'a> {
 	self
     }
 
-    pub fn set_len(&mut self, sz: usize) {
+    fn set_len(&mut self, sz: usize) {
 	assert!(sz <= self.blksz as usize);
+        self.data.set_len(sz);
 	self.len = u16::try_from(sz).unwrap();
+    }
+
+    pub fn empty(&mut self) {
+        self.set_len(0);
     }
 
     pub fn get_data(&self) -> &[u8] {
@@ -73,6 +89,8 @@ impl <'a> Block<'a> {
 //    where
 //	'b: 'a
     {
+        self.empty();
+
 	let sz = match &mut self.data {
 	    Data::Owned(d)	=> fetcher.read(d.spare_capacity_mut()).await?.len(),
 	    Data::Ref(_)	=> {
@@ -216,7 +234,7 @@ impl <'a> Xfer<'a> {
 	    let block = self.alloc_block().unwrap();
 
 	    let sz = if fetcher.is_eof() {
-		block.set_len(0);
+		block.empty();
 		0
 	    } else {
 		block.fill(fetcher).await?
