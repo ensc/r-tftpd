@@ -12,7 +12,7 @@ impl <'a, T: PrettyDump> PrettyDumpWrap<'a, T> {
     }
 }
 
-pub fn pretty_dump_wrap<T: PrettyDump>(o: &T) -> PrettyDumpWrap<T> {
+pub fn pretty_dump_wrap<T: PrettyDump>(o: &T) -> PrettyDumpWrap<'_, T> {
     PrettyDumpWrap::new(o)
 }
 

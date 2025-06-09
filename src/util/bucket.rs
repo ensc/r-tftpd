@@ -17,7 +17,7 @@ impl Bucket {
 	self.level.load(O::Relaxed)
     }
 
-    pub fn acquire(&self) -> Option<BucketGuard> {
+    pub fn acquire(&self) -> Option<BucketGuard<'_>> {
 	self.level
 	    .fetch_update(O::Relaxed, O::Relaxed, |v| match v {
 		0	=> None,

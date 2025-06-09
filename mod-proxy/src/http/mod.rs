@@ -14,7 +14,7 @@ pub use header::HttpHeader;
 
 pub use time::Time;
 
-pub fn to_lower(s: &[u8]) -> std::borrow::Cow<[u8]>
+pub fn to_lower(s: &[u8]) -> std::borrow::Cow<'_, [u8]>
 {
     let mut tmp = std::borrow::Cow::Borrowed(s);
 

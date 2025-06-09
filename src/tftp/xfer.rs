@@ -140,7 +140,7 @@ impl <'a> Xfer<'a> {
 	self.blocks.len() as u16
     }
 
-    fn get_rel_block(&self, idx: u16) -> Option<(SequenceId, &Block)>
+    fn get_rel_block(&self, idx: u16) -> Option<(SequenceId, &Block<'_>)>
     {
 	if idx >= self.active_sz {
 	    return None;
